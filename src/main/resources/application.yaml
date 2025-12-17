@@ -1,0 +1,28 @@
+spring:
+  security:
+    user:
+      name: moabbas
+      password: Mm11111!
+  application:
+    name: ChatStack
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: moabbas
+    password: Mm11111!
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+# create a testdb using docker
+#docker run --name test-postgres \
+#  -e POSTGRES_DB=chatstack \
+#  -e POSTGRES_USER=moabbas \
+#  -e POSTGRES_PASSWORD=Mm11111! \
+#  -p 5432:5432 \
+#  -d postgres:16
