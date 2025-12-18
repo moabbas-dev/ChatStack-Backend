@@ -37,6 +37,7 @@ components:
         password_hashed:
           type: string
           nullable: true
+          writeOnly: true
         email_verified:
           type: boolean
         avatar_url:
