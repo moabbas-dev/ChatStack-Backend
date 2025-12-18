@@ -2,33 +2,78 @@ openapi: 3.0.0
 info:
   title: ChatStack API
   version: "1.0"
-  description: Simple test endpoint
+  description: Chatting Platform
 
 tags:
-  - name: Hello
-    description: Hello test endpoints
+  - name: Users Management
+    description: Methods Related to users
+
+servers:
+  - url: /chat/stack/api/v1
 
 components:
   schemas:
-    HelloResponse:
+    User:
       type: object
+      required:
+        - id
+        - email
+        - fullname
+        - display_name
+        - email_verified
+        - status
+        - created_at
       properties:
-        message:
+        id:
           type: string
-          example: Hello from ChatStack API
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullname:
+          type: string
+        display_name:
+          type: string
+        password_hashed:
+          type: string
+          nullable: true
+        email_verified:
+          type: boolean
+        avatar_url:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [online, offline]
+        timezone:
+          type: string
+          description: IANA timezone (e.g. Europe/Paris)
+          example: Europe/Paris
+        last_seen_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
 
 paths:
-  /api/hello:
+  /users/{id}:
     get:
-      operationId: getHello
+      operationId: getUserById
       tags:
-        - Hello
-      summary: Test GET endpoint
-      description: Returns a hello message
+        - Users Management
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HelloResponse'
+                $ref: '#/components/schemas/User'
