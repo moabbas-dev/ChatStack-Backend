@@ -119,6 +119,48 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.12.0</version>
+                <configuration>
+                    <generatorName>spring</generatorName>
+                    <!--<generateModels>false</generateModels>-->
+                    <configOptions>
+                        <interfaceOnly>true</interfaceOnly>
+                        <dateLibrary>java8</dateLibrary>
+                        <serializableModel>true</serializableModel>
+                        <skipDefaultInterface>true</skipDefaultInterface>
+                        <generatedConstructorWithRequiredArgs>false</generatedConstructorWithRequiredArgs>
+                        <openApiNullable>false</openApiNullable>
+                        <documentationProvider>none</documentationProvider>
+                        <useJakartaEe>true</useJakartaEe>
+                        <useSpringBoot3>true</useSpringBoot3>
+                        <ignoreHeadersInServerCodegen>true</ignoreHeadersInServerCodegen>
+                        <useTags>true</useTags>
+                    </configOptions>
+                    <typeMappings>
+                        <typeMapping>float=java.math.BigDecimal</typeMapping>
+                        <typeMapping>double=java.math.BigDecimal</typeMapping>
+                        <typeMapping>date-time=java.time.Instant</typeMapping>
+                    </typeMappings>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>genChatStack</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/swagger/ChatStack.yaml</inputSpec>
+                            <output>${project.build.directory}/generated-sources/spring</output>
+                            <modelPackage>com.chatstack.type</modelPackage>
+                            <apiPackage>com.chatstack.api</apiPackage>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 

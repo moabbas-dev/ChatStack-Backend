@@ -1,0 +1,34 @@
+openapi: 3.0.0
+info:
+  title: ChatStack API
+  version: "1.0"
+  description: Simple test endpoint
+
+tags:
+  - name: Hello
+    description: Hello test endpoints
+
+components:
+  schemas:
+    HelloResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Hello from ChatStack API
+
+paths:
+  /api/hello:
+    get:
+      operationId: getHello
+      tags:
+        - Hello
+      summary: Test GET endpoint
+      description: Returns a hello message
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HelloResponse'
