@@ -128,6 +128,7 @@
                     <!--<generateModels>false</generateModels>-->
                     <configOptions>
                         <interfaceOnly>true</interfaceOnly>
+                        <modelNameSuffix>DTO</modelNameSuffix>
                         <dateLibrary>java8</dateLibrary>
                         <serializableModel>true</serializableModel>
                         <skipDefaultInterface>true</skipDefaultInterface>
@@ -154,7 +155,7 @@
                         <configuration>
                             <inputSpec>${project.basedir}/swagger/ChatStack.yaml</inputSpec>
                             <output>${project.build.directory}/generated-sources/spring</output>
-                            <modelPackage>com.chatstack.type</modelPackage>
+                            <modelPackage>com.chatstack.dto</modelPackage>
                             <apiPackage>com.chatstack.api</apiPackage>
                         </configuration>
                     </execution>

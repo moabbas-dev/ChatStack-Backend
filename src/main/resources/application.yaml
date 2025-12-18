@@ -6,9 +6,9 @@ spring:
   application:
     name: ChatStack
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: moabbas
-    password: Mm11111!
+    url: jdbc:postgresql://bml420vp4oyqyn1eaefe-postgresql.services.clever-cloud.com:50013/bml420vp4oyqyn1eaefe
+    username: ubqydpf1s713gzngzeyu
+    password: XoORg6NZeYOu9ASrIm9zwMXBRZWFS9
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -19,10 +19,16 @@ spring:
         format_sql: true
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-# create a testdb using docker
-#docker run --name test-postgres \
-#  -e POSTGRES_DB=chatstack \
-#  -e POSTGRES_USER=moabbas \
-#  -e POSTGRES_PASSWORD=Mm11111! \
-#  -p 5432:5432 \
-#  -d postgres:16
+
+#  POSTGRESQL_ADDON_HOST=bml420vp4oyqyn1eaefe-postgresql.services.clever-cloud.com
+#  POSTGRESQL_ADDON_DB=bml420vp4oyqyn1eaefe
+#  POSTGRESQL_ADDON_USER=ubqydpf1s713gzngzeyu
+#  POSTGRESQL_ADDON_PORT=50013
+#  POSTGRESQL_ADDON_PASSWORD=XoORg6NZeYOu9ASrIm9zwMXBRZWFS9
+#  POSTGRESQL_ADDON_URI=postgresql://ubqydpf1s713gzngzeyu:XoORg6NZeYOu9ASrIm9zwMXBRZWFS9@bml420vp4oyqyn1eaefe-postgresql.services.clever-cloud.com:5432/bml420vp4oyqyn1eaefe
+
+#  @Mapper(componentModel = "spring")
+#  public interface UserMapper {
+#  UserDto toDto(User user);
+#  User toEntity(UserDto dto);
+#}
