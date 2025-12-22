@@ -13,7 +13,16 @@ tags:
 servers:
   - url: /chat/stack/api/v1
 
+security:
+  - bearerAuth: []
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     User:
       type: object
@@ -94,6 +103,30 @@ components:
         display_name:
           type: string
 
+    LoginRequest:
+      oneOf:
+        - $ref: '#/components/schemas/PasswordLogin'
+        - $ref: '#/components/schemas/ProviderLogin'
+
+    PasswordLogin:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    ProviderLogin:
+      type: object
+      required: [id_token]
+      properties:
+        id_token:
+          type: string
+
+
 paths:
 #  User Management
   /users/{id}:
@@ -156,13 +189,14 @@ paths:
       tags:
         - Users Management
       summary: Get Current logged-in user
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              format: uuid
+
       responses:
         '200':
           description: Successful response
@@ -421,16 +455,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-#  Authentication Flow
-#  POST   /auth/signup
-#  POST   /auth/login
-#  POST   /auth/logout
-#  POST   /auth/refresh-token
-#  POST   /auth/verify-email
-#  POST   /auth/resend-verification
-#  POST   /auth/forgot-password
-#  POST   /auth/reset-password
-#  POST   /auth/change-password
+# Authentication Flow
   /auth/signup:
     post:
       operationId: authSignup
@@ -464,3 +489,251 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /auth/login:
+    post:
+      operationId: authLogin
+      tags:
+        - Authentication Flow
+      summary: Login for existing account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful, tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Email not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/logout:
+    post:
+      operationId: authLogout
+      tags:
+        - Authentication Flow
+      summary: Logout current user
+
+      responses:
+        '204':
+          description: Logout successful
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/refresh-token:
+    post:
+      operationId: authRefreshToken
+      tags:
+        - Authentication Flow
+      summary: Refresh access token
+      security: [ ]   # refresh token handled via cookie
+      responses:
+        '200':
+          description: New access token issued
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Refresh token revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/verify-email:
+    post:
+      operationId: authVerifyEmail
+      tags:
+        - Authentication Flow
+      summary: Verify user email
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ token ]
+              properties:
+                token:
+                  type: string
+      responses:
+        '204':
+          description: Email verified successfully
+        '400':
+          description: Invalid or malformed token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Verification token expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/resend-verification:
+    post:
+      operationId: authResendVerification
+      tags:
+        - Authentication Flow
+      summary: Resend verification email
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ email ]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '204':
+          description: Verification email resent
+        '400':
+          description: Email already verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/forgot-password:
+    post:
+      operationId: authForgotPassword
+      tags:
+        - Authentication Flow
+      summary: Request password reset
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ email ]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '204':
+          description: Password reset email sent
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/reset-password:
+    post:
+      operationId: authResetPassword
+      tags:
+        - Authentication Flow
+      summary: Reset password
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ token, new_password ]
+              properties:
+                token:
+                  type: string
+                new_password:
+                  type: string
+                  format: password
+      responses:
+        '204':
+          description: Password reset successfully
+        '400':
+          description: Invalid password or token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Reset token expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/change-password:
+    post:
+      operationId: authChangePassword
+      tags:
+        - Authentication Flow
+      summary: Change current password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ current_password, new_password ]
+              properties:
+                current_password:
+                  type: string
+                  format: password
+                new_password:
+                  type: string
+                  format: password
+      responses:
+        '204':
+          description: Password changed successfully
+        '400':
+          description: Invalid current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
