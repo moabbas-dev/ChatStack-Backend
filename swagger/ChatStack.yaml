@@ -47,7 +47,9 @@ components:
           type: string
         password_hashed:
           type: string
+          format: password
           nullable: true
+          writeOnly: true
         email_verified:
           type: boolean
         avatar_url:
@@ -97,6 +99,7 @@ components:
           format: email
         password:
           type: string
+          writeOnly: true
           format: password
         fullname:
           type: string
@@ -117,6 +120,7 @@ components:
           format: email
         password:
           type: string
+          writeOnly: true
           format: password
 
     ProviderLogin:
@@ -685,6 +689,7 @@ paths:
                   type: string
                 new_password:
                   type: string
+                  writeOnly: true
                   format: password
       responses:
         '204':
@@ -718,9 +723,11 @@ paths:
                 current_password:
                   type: string
                   format: password
+                  writeOnly: true
                 new_password:
                   type: string
                   format: password
+                  writeOnly: true
       responses:
         '204':
           description: Password changed successfully
