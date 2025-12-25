@@ -7,11 +7,22 @@ info:
 tags:
   - name: Users Management
     description: Methods Related to users
+  - name: Authentication Flow
+    description: Methods Related to Authentication
 
 servers:
   - url: /chat/stack/api/v1
 
+security:
+  - bearerAuth: []
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     User:
       type: object
@@ -36,6 +47,7 @@ components:
           type: string
         password_hashed:
           type: string
+          format: password
           nullable: true
           writeOnly: true
         email_verified:
@@ -57,7 +69,81 @@ components:
           type: string
           format: date-time
 
+    Error:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: >-
+            HTTP error or Free text such as  Database Not Available , Invalid
+            Credential, Mandatory, Invalid Format,  Invalid Length,
+            ForbiddenValue, Invalid Data,...
+        code:
+          type: string
+          description: 'Error Id,  Server Application error ID, SQL error Id, ....'
+        description:
+          type: string
+          description: Human-readable error description including Data and Value
+      required:
+        - reason
+
+    SignupRequest:
+      type: object
+      required:
+        - email
+        - password
+        - fullname
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+          format: password
+        fullname:
+          type: string
+        display_name:
+          type: string
+
+    LoginRequest:
+      oneOf:
+        - $ref: '#/components/schemas/PasswordLogin'
+        - $ref: '#/components/schemas/ProviderLogin'
+      discriminator:
+        propertyName: login_type
+        mapping:
+          password: '#/components/schemas/PasswordLogin'
+          provider: '#/components/schemas/ProviderLogin'
+
+    PasswordLogin:
+      type: object
+      required: [login_type, email, password]
+      properties:
+        login_type:
+          type: string
+          enum: [password]
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+          format: password
+
+    ProviderLogin:
+      type: object
+      required: [logint_type, id_token]
+      properties:
+        login_type:
+          type: string
+          enum: provider
+        id_token:
+          type: string
+
+
 paths:
+#  User Management
   /users/{id}:
     get:
       operationId: getUserById
@@ -78,3 +164,593 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid user ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /users/me:
+    get:
+      operationId: getCurrentUser
+      tags:
+        - Users Management
+      summary: Get Current logged-in user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              format: uuid
+
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      operationId: setCurrentUser
+      tags:
+        - Users Management
+      summary: Set current logged-in User Data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: deleteCurrentUser
+      tags:
+        - Users Management
+      summary: Delete current logged-in User Data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/users:
+    get:
+      operationId: getAllUsers
+      tags:
+        - Users Management
+      summary: Get All Users [Only for admins]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '400':
+          description: Something Is Invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: No Users are found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/users/{id}:
+    patch:
+      operationId: setUserData
+      tags:
+        - Users Management
+      summary: Set User Data Manually By Admin [For Admin only]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Something Is Invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: No Users are found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+# Authentication Flow
+  /auth/signup:
+    post:
+      operationId: authSignup
+      tags:
+        - Authentication Flow
+      summary: Create a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+        '400':
+          description: Invalid signup data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/login:
+    post:
+      operationId: authLogin
+      tags:
+        - Authentication Flow
+      summary: Login for existing account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful, tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Email not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/logout:
+    post:
+      operationId: authLogout
+      tags:
+        - Authentication Flow
+      summary: Logout current user
+
+      responses:
+        '204':
+          description: Logout successful
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/refresh-token:
+    post:
+      operationId: authRefreshToken
+      tags:
+        - Authentication Flow
+      summary: Refresh access token
+      security: [ ]   # refresh token handled via cookie
+      responses:
+        '200':
+          description: New access token issued
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Refresh token revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/verify-email:
+    post:
+      operationId: authVerifyEmail
+      tags:
+        - Authentication Flow
+      summary: Verify user email
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ token ]
+              properties:
+                token:
+                  type: string
+      responses:
+        '204':
+          description: Email verified successfully
+        '400':
+          description: Invalid or malformed token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Verification token expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/resend-verification:
+    post:
+      operationId: authResendVerification
+      tags:
+        - Authentication Flow
+      summary: Resend verification email
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ email ]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '204':
+          description: Verification email resent
+        '400':
+          description: Email already verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/forgot-password:
+    post:
+      operationId: authForgotPassword
+      tags:
+        - Authentication Flow
+      summary: Request password reset
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ email ]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '204':
+          description: Password reset email sent
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/reset-password:
+    post:
+      operationId: authResetPassword
+      tags:
+        - Authentication Flow
+      summary: Reset password
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ token, new_password ]
+              properties:
+                token:
+                  type: string
+                new_password:
+                  type: string
+                  writeOnly: true
+                  format: password
+      responses:
+        '204':
+          description: Password reset successfully
+        '400':
+          description: Invalid password or token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Reset token expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/change-password:
+    post:
+      operationId: authChangePassword
+      tags:
+        - Authentication Flow
+      summary: Change current password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ current_password, new_password ]
+              properties:
+                current_password:
+                  type: string
+                  format: password
+                  writeOnly: true
+                new_password:
+                  type: string
+                  format: password
+                  writeOnly: true
+      responses:
+        '204':
+          description: Password changed successfully
+        '400':
+          description: Invalid current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
