@@ -137,7 +137,7 @@ components:
       properties:
         login_type:
           type: string
-          enum: provider
+          enum: [provider]
         id_token:
           type: string
 
@@ -204,13 +204,13 @@ paths:
       tags:
         - Users Management
       summary: Get Current logged-in user
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: string
-              format: uuid
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
 
       responses:
         '200':
@@ -258,13 +258,16 @@ paths:
       tags:
         - Users Management
       summary: Set current logged-in User Data
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
       responses:
         '200':
           description: Successful response
@@ -311,13 +314,6 @@ paths:
       tags:
         - Users Management
       summary: Delete current logged-in User Data
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
         '200':
           description: Successful response
@@ -365,13 +361,6 @@ paths:
       tags:
         - Users Management
       summary: Get All Users [Only for admins]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
         '200':
           description: Successful response
