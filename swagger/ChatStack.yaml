@@ -122,7 +122,7 @@ components:
       properties:
         login_type:
           type: string
-          enum: [password]
+          example: password
         email:
           type: string
           format: email
@@ -137,7 +137,7 @@ components:
       properties:
         login_type:
           type: string
-          enum: [provider]
+          example: provider
         id_token:
           type: string
 
