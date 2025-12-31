@@ -1,0 +1,60 @@
+1- we have JwtAuthFilter class that intercept every single request and check if the token is exists or not
+    a. if the token is not exists so send unauthorized response to the user and stop
+    b. if exists send to jwtService to check if it's valid or not to extract user email from it then
+    we can access database for add/get/delete/edit for this specific user by his email
+
+2- JWT Explanation:
+
+1️⃣ What is JWT?
+JWT (JSON Web Token) is a compact, self-contained token used to securely transmit information between a
+client and a server, most commonly for authentication and authorization.
+Typical flow:
+    1. User logs in
+    2. Server creates a JWT and sends it to the client
+    3. Client sends the JWT with each request
+    4. Server validates the token and authorizes the request
+JWT is stateless → the server does not store session data.
+
+2️⃣ JWT Structure
+A JWT has three parts, separated by dots (.): Header.Payload.Signature
+Example:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+.eyJzdWIiOiIxMjM0NTYiLCJyb2xlIjJiVnNFUiJ9
+.QxFJjZ7k9k5AG4ywDdRTHqt3tqGFe53FeHq3f
+Each part is Base64Url encoded.
+
+3️⃣ JWT Parts Explained
+1. Header: Contains metadata about the token
+{
+    "alg": "HS256",
+    "typ": "JWT"
+}
+
+2. Payload (Claims) ⭐ Most Important Part
+The payload contains claims, which are statements about:
+The user, The token itself, and Custom application data
+{
+    "sub": "12345",
+    "username": "john",
+    "role": "ADMIN",
+    "exp": 1710000000
+}
+
+4️⃣ Payload Claims Types:
+1. Registered Claims (Standard): Predefined by the JWT specification
+    sub:	Subject (usually user ID)
+    iss:	Issuer (who created the token)
+    aud:	Audience (who can use it)
+    exp:	Expiration time
+    iat:	Issued at
+    nbf:	Not before
+
+2. Public Claims: public user data
+3. Private (Custom) Claims ⭐: Application-specific, and Used for authorization
+    example:
+    {
+      "userId": 7,
+      "role": "ADMIN",
+      "permissions": ["READ", "WRITE"]
+    }
+    These claims help decide what the user can access
