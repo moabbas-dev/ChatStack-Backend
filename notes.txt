@@ -58,3 +58,7 @@ The user, The token itself, and Custom application data
       "permissions": ["READ", "WRITE"]
     }
     These claims help decide what the user can access
+
+3- JWT Filter
+a. check the validity of request (if it contains the basic info such as Bearer ... and authrization headers)
+b. if the user is not authenticated => update the SecurityContextHolder
