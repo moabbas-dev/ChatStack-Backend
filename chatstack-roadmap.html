@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatStack Project Structure & Implementation Roadmap</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        h2 {
+            color: #2d3748;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            font-size: 1.8em;
+        }
+
+        h3 {
+            color: #4a5568;
+            margin: 25px 0 15px 0;
+            font-size: 1.4em;
+        }
+
+        .file-tree {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.8;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .badge-done {
+            background: #48bb78;
+            color: white;
+        }
+
+        .badge-todo {
+            background: #f56565;
+            color: white;
+        }
+
+        .phase {
+            background: #edf2f7;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+
+        .phase h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+
+        ul {
+            margin: 15px 0 15px 30px;
+        }
+
+        li {
+            margin: 10px 0;
+            line-height: 1.8;
+        }
+
+        .principle {
+            background: #fff5f5;
+            border-left: 5px solid #fc8181;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .principle h4 {
+            color: #c53030;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .next-steps {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+
+        .next-steps h2 {
+            color: white;
+            border-bottom-color: white;
+        }
+
+        .next-steps ol {
+            margin-left: 20px;
+        }
+
+        .next-steps li {
+            font-size: 1.1em;
+        }
+
+        code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e53e3e;
+        }
+
+        .icon {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📁 ChatStack Project Structure</h1>
+            <p>Complete Implementation Roadmap & Best Practices</p>
+        </header>
+
+        <div class="content">
+            <h2>🗂️ Recommended Project Structure</h2>
+            
+            <div class="file-tree">
+                <pre>
+ChatStack/
+├── src/main/java/com/api/chatstack/
+│   ├── ChatStackApplication.java
+│   ├── SwaggerConfig.java
+│   │
+│   ├── config/ <span class="badge badge-done">✅ DONE</span>
+│   │   ├── ApplicationConfig.java
+│   │   ├── SecurityConfig.java
+│   │   ├── JwtAuthFilter.java
+│   │   └── JwtService.java
+│   │
+│   ├── controllers/ <span class="badge badge-todo">🔴 TO CREATE</span>
+│   │   ├── AuthenticationController.java
+│   │   └── UserController.java
+│   │
+│   ├── services/ <span class="badge badge-todo">🔴 TO CREATE</span>
+│   │   ├── auth/
+│   │   │   ├── AuthenticationService.java
+│   │   │   ├── EmailVerificationService.java
+│   │   │   ├── PasswordResetService.java
+│   │   │   └── RefreshTokenService.java
+│   │   └── user/
+│   │       ├── UserService.java
+│   │       └── UserManagementService.java
+│   │
+│   ├── repositories/ <span class="badge badge-done">✅ Partially Done</span>
+│   │   ├── UserRepository.java <span class="badge badge-done">✅</span>
+│   │   ├── RefreshTokenRepository.java <span class="badge badge-todo">🔴</span>
+│   │   └── VerificationTokenRepository.java <span class="badge badge-todo">🔴</span>
+│   │
+│   ├── entities/ <span class="badge badge-done">✅ Partially Done</span>
+│   │   ├── UserEntity.java <span class="badge badge-done">✅</span>
+│   │   ├── RefreshTokenEntity.java <span class="badge badge-todo">🔴</span>
+│   │   └── VerificationTokenEntity.java <span class="badge badge-todo">🔴</span>
+│   │
+│   ├── dto/ <span class="badge badge-todo">🔴 TO CREATE</span>
+│   │   ├── request/
+│   │   │   ├── SignupRequest.java
+│   │   │   ├── LoginRequest.java
+│   │   │   ├── PasswordLoginRequest.java
+│   │   │   ├── ProviderLoginRequest.java
+│   │   │   ├── ChangePasswordRequest.java
+│   │   │   └── ForgotPasswordRequest.java
+│   │   └── response/
+│   │       ├── AuthenticationResponse.java
+│   │       ├── UserResponse.java
+│   │       └── ErrorResponse.java
+│   │
+│   ├── mappers/ <span class="badge badge-todo">🔴 TO CREATE</span>
+│   │   └── UserMapper.java
+│   │
+│   ├── enums/ <span class="badge badge-done">✅ EXISTS</span>
+│   │   └── Role.java
+│   │
+│   ├── exceptions/ <span class="badge badge-todo">🔴 TO CREATE</span>
+│   │   ├── GlobalExceptionHandler.java
+│   │   ├── UserNotFoundException.java
+│   │   ├── EmailAlreadyExistsException.java
+│   │   ├── InvalidCredentialsException.java
+│   │   ├── TokenExpiredException.java
+│   │   └── EmailNotVerifiedException.java
+│   │
+│   └── util/ <span class="badge badge-todo">🔴 TO CREATE</span>
+│       ├── EmailService.java
+│       ├── TokenGenerator.java
+│       └── PasswordValidator.java
+│
+├── src/main/resources/
+│   ├── application.yaml <span class="badge badge-done">✅</span>
+│   ├── banner.txt <span class="badge badge-done">✅</span>
+│   └── templates/ <span class="badge badge-todo">🔴 TO CREATE</span>
+│       ├── verification-email.html
+│       └── password-reset-email.html
+│
+└── target/generated-sources/spring/ <span class="badge badge-done">✅ Generated</span>
+    └── src/main/java/com/chatstack/
+        ├── api/ (Generated API interfaces)
+        └── dto/ (Generated DTOs)
+        </pre>
+            </div>
+
+            <h2>🎯 Implementation Order (Clean Approach)</h2>
+
+            <div class="phase">
+                <h3><span class="icon">🏗️</span>Phase 1: Foundation Layer</h3>
+                
+                <h4>Exceptions Package</h4>
+                <ul>
+                    <li>Create custom exception classes</li>
+                    <li>Implement GlobalExceptionHandler with <code>@ControllerAdvice</code></li>
+                    <li>Map exceptions to appropriate HTTP status codes</li>
+                </ul>
+
+                <h4>DTOs Package</h4>
+                <ul>
+                    <li>Create request/response DTOs (separate from generated ones)</li>
+                    <li>Add validation annotations (<code>@Valid</code>, <code>@NotNull</code>, etc.)</li>
+                    <li>Keep them clean and focused</li>
+                </ul>
+
+                <h4>Mappers Package</h4>
+                <ul>
+                    <li>Create UserMapper to convert between <code>UserEntity</code> and UserDTO</li>
+                    <li>Consider using MapStruct or manual mapping</li>
+                </ul>
+            </div>
+
+            <div class="phase">
+                <h3><span class="icon">💾</span>Phase 2: Persistence Layer</h3>
+                
+                <h4>Entities</h4>
+                <ul>
+                    <li>Create RefreshTokenEntity (id, token, userId, expiryDate, createdAt)</li>
+                    <li>Create VerificationTokenEntity (id, token, userId, expiryDate, tokenType)</li>
+                </ul>
+
+                <h4>Repositories</h4>
+                <ul>
+                    <li>Create RefreshTokenRepository extends JpaRepository</li>
+                    <li>Create VerificationTokenRepository extends JpaRepository</li>
+                    <li>Add custom query methods as needed</li>
+                </ul>
+            </div>
+
+            <div class="phase">
+                <h3><span class="icon">🧠</span>Phase 3: Business Logic Layer</h3>
+                
+                <h4>Utility Services</h4>
+                <ul>
+                    <li>EmailService - send verification & reset emails</li>
+                    <li>TokenGenerator - generate verification/reset tokens</li>
+                    <li>PasswordValidator - validate password strength</li>
+                </ul>
+
+                <h4>Auth Services</h4>
+                <ul>
+                    <li>AuthenticationService - signup, login, logout</li>
+                    <li>RefreshTokenService - token refresh logic</li>
+                    <li>EmailVerificationService - verify email, resend verification</li>
+                    <li>PasswordResetService - forgot password, reset password</li>
+                </ul>
+
+                <h4>User Services</h4>
+                <ul>
+                    <li>UserService - CRUD operations for current user</li>
+                    <li>UserManagementService - admin operations (get all users, update by ID)</li>
+                </ul>
+            </div>
+
+            <div class="phase">
+                <h3><span class="icon">🌐</span>Phase 4: API Layer</h3>
+                
+                <h4>Controllers</h4>
+                <ul>
+                    <li>AuthenticationController implements generated AuthenticationFlowApi</li>
+                    <li>UserController implements generated UsersManagementApi</li>
+                    <li>Use <code>@RestController</code> and inject services</li>
+                    <li>Return DTOs, not entities</li>
+                </ul>
+            </div>
+
+            <div class="phase">
+                <h3><span class="icon">✨</span>Phase 5: Testing & Polish</h3>
+                
+                <h4>Security Fine-tuning</h4>
+                <ul>
+                    <li>Update SecurityConfig.requestMatchers() with public endpoints:
+                        <ul>
+                            <li>/auth/signup, /auth/login, /auth/verify-email</li>
+                            <li>/auth/forgot-password, /auth/reset-password</li>
+                            <li>/swagger-ui/**, /v3/api-docs/**</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h4>Email Templates</h4>
+                <ul>
+                    <li>Create HTML templates for verification & password reset emails</li>
+                    <li>Use Thymeleaf or plain HTML</li>
+                </ul>
+
+                <h4>Testing</h4>
+                <ul>
+                    <li>Test each endpoint with Postman/Swagger UI</li>
+                    <li>Verify JWT flow works end-to-end</li>
+                </ul>
+            </div>
+
+            <h2>🔑 Key Design Principles</h2>
+
+            <div class="principle">
+                <h4>1. Separation of Concerns</h4>
+                <ul>
+                    <li><strong>Controllers:</strong> Handle HTTP requests/responses only</li>
+                    <li><strong>Services:</strong> Contain business logic</li>
+                    <li><strong>Repositories:</strong> Database access only</li>
+                    <li><strong>DTOs:</strong> Data transfer between layers</li>
+                </ul>
+            </div>
+
+            <div class="principle">
+                <h4>2. Clean Architecture</h4>
+                <pre>Controller → Service → Repository → Database
+     ↓          ↓
+   DTOs    Entities</pre>
+            </div>
+
+            <div class="principle">
+                <h4>3. Never Expose Entities Directly</h4>
+                <ul>
+                    <li>Always use DTOs in controllers</li>
+                    <li>Use mappers to convert between entities and DTOs</li>
+                </ul>
+            </div>
+
+            <div class="principle">
+                <h4>4. Use Generated Code Wisely</h4>
+                <ul>
+                    <li>Implement generated API interfaces (AuthenticationFlowApi, UsersManagementApi)</li>
+                    <li>Don't modify generated code (it will be overwritten)</li>
+                    <li>Use generated DTOs where applicable or create custom ones</li>
+                </ul>
+            </div>
+
+            <div class="principle">
+                <h4>5. Exception Handling Strategy</h4>
+                <ul>
+                    <li>Throw custom exceptions in services</li>
+                    <li>Handle globally in <code>@ControllerAdvice</code></li>
+                    <li>Return consistent error responses matching your Swagger spec</li>
+                </ul>
+            </div>
+
+            <div class="next-steps">
+                <h2>📝 Next Immediate Steps</h2>
+                <ol>
+                    <li>Create the exceptions package (foundation for error handling)</li>
+                    <li>Create DTOs (request/response objects)</li>
+                    <li>Create additional entities (RefreshToken, VerificationToken)</li>
+                    <li>Implement services (business logic)</li>
+                    <li>Implement controllers (API endpoints)</li>
+                    <li>Configure security whitelist (public endpoints)</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

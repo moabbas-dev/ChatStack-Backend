@@ -133,7 +133,7 @@ components:
 
     ProviderLogin:
       type: object
-      required: [logint_type, id_token]
+      required: [login_type, id_token]
       properties:
         login_type:
           type: string
