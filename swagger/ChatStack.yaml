@@ -54,7 +54,6 @@ components:
           type: boolean
         avatar_url:
           type: string
-          format: uri
         status:
           type: string
           enum: [online, offline]
@@ -97,14 +96,29 @@ components:
         email:
           type: string
           format: email
+          maxLength: 255
+          example: "user@example.com"
         password:
           type: string
           writeOnly: true
           format: password
+          minLength: 12
+          pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"
+          description: >
+            Password must be at least 12 characters and contain uppercase,
+            lowercase, number, and special character.
         fullname:
           type: string
+          minLength: 2
+          maxLength: 255
+          example: "John Doe"
         display_name:
           type: string
+          minLength: 3
+          maxLength: 50
+          pattern: "^[a-zA-Z0-9._-]+$"
+          description: "Unique public username"
+          example: "john_doe"
 
     LoginRequest:
       oneOf:
