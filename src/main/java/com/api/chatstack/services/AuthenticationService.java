@@ -10,7 +10,10 @@ import com.chatstack.dto.SignupRequest;
 import com.chatstack.dto.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.OffsetDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +21,7 @@ public class AuthenticationService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public User signup(SignupRequest signupRequest) {
         if (userRepository.existsByEmail(signupRequest.getEmail()) || userRepository.existsByUsername(signupRequest.getDisplayName())) {
@@ -39,9 +43,12 @@ public class AuthenticationService {
                 .fullName(fullname)
                 .displayName(signupRequest.getDisplayName())
                 .email(signupRequest.getEmail())
-                .passwordHashed(signupRequest.getPassword())
+                .emailVerified(false)
+                .passwordHashed(passwordEncoder.encode(signupRequest.getPassword()))
                 .role(Role.USER)
-                .status(User.StatusEnum.ONLINE)
+                .status(User.StatusEnum.OFFLINE)
+                .createdAt(OffsetDateTime.now())
+                .lastSeenAt(OffsetDateTime.now())
                 .build();
 
         return userMapper.toDto(userRepository.save(user));
