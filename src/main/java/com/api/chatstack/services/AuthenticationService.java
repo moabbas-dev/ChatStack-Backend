@@ -11,12 +11,14 @@ import com.chatstack.dto.SignupRequest;
 import com.chatstack.dto.User;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -26,9 +28,11 @@ public class AuthenticationService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final MailService mailSender;
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     public User signup(SignupRequest signupRequest) throws MessagingException, IOException {
-        if (userRepository.existsByEmail(signupRequest.getEmail()) || userRepository.existsByUsername(signupRequest.getDisplayName())) {
+        if (userRepository.existsByEmail(signupRequest.getEmail()) || userRepository.existsByDisplayName(signupRequest.getDisplayName())) {
             throw new ChatStackException("User Already Exists",
                     "DUPLICATE_EMAIL",
                     "User with email " + signupRequest.getEmail() + " already exists",
@@ -50,9 +54,11 @@ public class AuthenticationService {
                 .emailVerified(false)
                 .passwordHashed(passwordEncoder.encode(signupRequest.getPassword()))
                 .role(Role.USER)
+                .avatarUrl(baseUrl + "avatars/default.png")
                 .status(User.StatusEnum.OFFLINE)
                 .createdAt(OffsetDateTime.now())
                 .lastSeenAt(OffsetDateTime.now())
+                .timezone(ZoneId.systemDefault().toString())
                 .build();
 
         String html = FileLoader.loadHtmlTemplate("/templates/email/welcome.html");

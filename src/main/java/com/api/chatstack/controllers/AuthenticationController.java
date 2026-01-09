@@ -7,10 +7,14 @@ import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 
 @RequiredArgsConstructor
+@RestController
+@RequestMapping("/chat/stack/api/v1")
 public class AuthenticationController implements AuthenticationFlowApi {
 
     private final AuthenticationService authService;
@@ -51,9 +55,13 @@ public class AuthenticationController implements AuthenticationFlowApi {
     }
 
     @Override
-    public ResponseEntity<User> authSignup(SignupRequest signupRequest) throws MessagingException, IOException {
-        User createdUser = authService.signup(signupRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+    public ResponseEntity<User> authSignup(SignupRequest signupRequest) {
+        try {
+            User createdUser = authService.signup(signupRequest);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+        } catch (MessagingException | IOException ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @Override

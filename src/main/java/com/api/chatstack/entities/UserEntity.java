@@ -2,6 +2,7 @@ package com.api.chatstack.entities;
 
 import com.api.chatstack.enums.Role;
 import com.chatstack.dto.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,6 +44,7 @@ public class UserEntity implements UserDetails {
     private boolean emailVerified;
 
     @Column(name = "password_hashed")
+    @JsonIgnore
     private String passwordHashed;
 
     @Column(name = "avatar_url", nullable = false)

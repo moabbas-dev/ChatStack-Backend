@@ -31,6 +31,9 @@ spring:
           starttls:
             enable: true
 
+app:
+  base-url: http://localhost:8080/
+
 
 #  POSTGRESQL_ADDON_HOST=bml420vp4oyqyn1eaefe-postgresql.services.clever-cloud.com
 #  POSTGRESQL_ADDON_DB=bml420vp4oyqyn1eaefe

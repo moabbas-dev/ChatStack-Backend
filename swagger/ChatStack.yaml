@@ -45,11 +45,12 @@ components:
           type: string
         display_name:
           type: string
-        password_hashed:
-          type: string
-          format: password
-          nullable: true
-          writeOnly: true
+#        password_hashed:
+#          type: string
+#          format: password
+#          nullable: true
+#          writeOnly: true
+#          x-field-extra-annotation: "@com.fasterxml.jackson.annotation.JsonIgnore"
         email_verified:
           type: boolean
         avatar_url:
