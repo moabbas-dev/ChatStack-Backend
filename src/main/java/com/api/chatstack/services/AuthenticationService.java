@@ -5,14 +5,17 @@ import com.api.chatstack.enums.Role;
 import com.api.chatstack.exception.ChatStackException;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.UserRepository;
+import com.api.chatstack.utils.FileLoader;
 import com.api.chatstack.utils.Validation;
 import com.chatstack.dto.SignupRequest;
 import com.chatstack.dto.User;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 
 @Service
@@ -22,8 +25,9 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final MailService mailSender;
 
-    public User signup(SignupRequest signupRequest) {
+    public User signup(SignupRequest signupRequest) throws MessagingException, IOException {
         if (userRepository.existsByEmail(signupRequest.getEmail()) || userRepository.existsByUsername(signupRequest.getDisplayName())) {
             throw new ChatStackException("User Already Exists",
                     "DUPLICATE_EMAIL",
@@ -50,6 +54,14 @@ public class AuthenticationService {
                 .createdAt(OffsetDateTime.now())
                 .lastSeenAt(OffsetDateTime.now())
                 .build();
+
+        String html = FileLoader.loadHtmlTemplate("/templates/email/welcome.html");
+        html = html.replace("{{fullname}}", user.getFullName());
+        html = html.replace("{{displayName}}", user.getDisplayName());
+        // TODO: Generate a verfication link expires in 24 hours
+        html = html.replace("{{verification_link}}", "");
+
+        mailSender.sendHtml(user.getEmail(), "Chat Stack - Email Activation", html);
 
         return userMapper.toDto(userRepository.save(user));
     }

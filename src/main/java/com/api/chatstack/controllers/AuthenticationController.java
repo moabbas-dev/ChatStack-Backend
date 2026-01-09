@@ -3,9 +3,12 @@ package com.api.chatstack.controllers;
 import com.api.chatstack.services.AuthenticationService;
 import com.chatstack.api.AuthenticationFlowApi;
 import com.chatstack.dto.*;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import java.io.IOException;
 
 @RequiredArgsConstructor
 public class AuthenticationController implements AuthenticationFlowApi {
@@ -48,7 +51,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
     }
 
     @Override
-    public ResponseEntity<User> authSignup(SignupRequest signupRequest) {
+    public ResponseEntity<User> authSignup(SignupRequest signupRequest) throws MessagingException, IOException {
         User createdUser = authService.signup(signupRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }

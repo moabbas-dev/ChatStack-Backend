@@ -19,6 +19,18 @@ spring:
         format_sql: true
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: mohammadabbassa33@gmail.com
+    password: oyxobuzgjqtlewnq
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 
 #  POSTGRESQL_ADDON_HOST=bml420vp4oyqyn1eaefe-postgresql.services.clever-cloud.com
 #  POSTGRESQL_ADDON_DB=bml420vp4oyqyn1eaefe
