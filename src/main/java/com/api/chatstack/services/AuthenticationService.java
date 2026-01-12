@@ -5,7 +5,6 @@ import com.api.chatstack.enums.Role;
 import com.api.chatstack.exception.ChatStackException;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.UserRepository;
-import com.api.chatstack.utils.FileLoader;
 import com.api.chatstack.utils.Validation;
 import com.chatstack.dto.SignupRequest;
 import com.chatstack.dto.User;
@@ -61,14 +60,9 @@ public class AuthenticationService {
                 .timezone(ZoneId.systemDefault().toString())
                 .build();
 
-        String html = FileLoader.loadHtmlTemplate("/templates/email/welcome.html");
-        html = html.replace("{{fullname}}", user.getFullName());
-        html = html.replace("{{displayName}}", user.getDisplayName());
-        // TODO: Generate a verfication link expires in 24 hours
-        html = html.replace("{{verification_link}}", "");
+        UserEntity userEntity = userRepository.save(user);
+        mailSender.sendVerificationEmail(userEntity);
 
-        mailSender.sendHtml(user.getEmail(), "Chat Stack - Email Activation", html);
-
-        return userMapper.toDto(userRepository.save(user));
+        return userMapper.toDto(userEntity);
     }
 }
