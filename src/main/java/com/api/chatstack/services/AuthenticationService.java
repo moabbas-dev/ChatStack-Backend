@@ -131,6 +131,8 @@ public class AuthenticationService {
     }
 
     public User login(LoginRequest loginRequest) {
+        User userDTO = null;
+
         if (loginRequest == null || loginRequest.getLoginType() == null) {
             throw new ChatStackException("Login Type Not Provided",
                     "INCORRECT_LOGIN_TYPE",
@@ -151,12 +153,32 @@ public class AuthenticationService {
                         "Login type is not supported",
                         HttpStatus.BAD_REQUEST);
 
-            if (!userRepository.existsByEmail(email)) {
-                throw new ChatStackException("User not found",
-                        "EMAIL_NOT_FOUND",
-                        "User with email " + email + " is not exist",
-                        HttpStatus.NOT_FOUND);
+            UserEntity user = userRepository.findByEmail(email).orElseThrow(() ->
+                    new ChatStackException("User not found",
+                    "INVALID_CREDENTIALS",
+                    "Invalid Credentials",
+                    HttpStatus.UNAUTHORIZED));
+
+            if (!passwordEncoder.matches(password, user.getPasswordHashed())) {
+                throw new ChatStackException("password does not match",
+                        "INVALID_CREDENTIALS",
+                        "Invalid Credentials",
+                        HttpStatus.UNAUTHORIZED);
             }
+
+            if (!user.isEmailVerified()) {
+                throw new ChatStackException("email is not verified",
+                        "EMAIL_NOT_VERIFIED",
+                        "Your Email is not verified",
+                        HttpStatus.FORBIDDEN);
+            }
+
+            user.setLastSeenAt(OffsetDateTime.now());
+            user.setStatus(User.StatusEnum.ONLINE);
+            userRepository.save(user);
+            // new refresh and access token (not implemented yet)
+
+            userDTO = userMapper.toDto(user);
         } else if (loginRequest instanceof ProviderLogin providerLogin) {
             if (providerLogin.getLoginType() == null || providerLogin.getLoginType().trim().isEmpty())
                 throw new ChatStackException("Login type is not provided",
@@ -169,6 +191,6 @@ public class AuthenticationService {
                     "Login type is not supported",
                     HttpStatus.BAD_REQUEST);
         }
-        return null;
+        return userDTO;
     }
 }
