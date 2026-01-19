@@ -62,7 +62,12 @@ public class Validation {
 
     public static boolean isEmailValid(String email) {
         if (email == null || email.isBlank()) {
-            return false;
+            throw new ChatStackException(
+                    "email is required",
+                    "EMAIL_REQUIRED",
+                    "Email is required",
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
         String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";

@@ -1,5 +1,7 @@
 package com.api.chatstack.controllers;
 
+import com.api.chatstack.enums.LoginType;
+import com.api.chatstack.exception.ChatStackException;
 import com.api.chatstack.services.AuthenticationService;
 import com.chatstack.api.AuthenticationFlowApi;
 import com.chatstack.dto.*;
@@ -14,7 +16,7 @@ import java.io.IOException;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/chat/stack/api/v1")
+@RequestMapping("/chat-stack/api/v1")
 public class AuthenticationController implements AuthenticationFlowApi {
 
     private final AuthenticationService authService;
@@ -30,8 +32,10 @@ public class AuthenticationController implements AuthenticationFlowApi {
     }
 
     @Override
+//    login request either: password or provider
     public ResponseEntity<User> authLogin(LoginRequest loginRequest) {
-        return null;
+        User loggedUser = authService.login(loginRequest);
+        return ResponseEntity.status(HttpStatus.OK).body(loggedUser);
     }
 
     @Override
@@ -66,6 +70,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
 
     @Override
     public ResponseEntity<Void> authVerifyEmail(AuthVerifyEmailRequest authVerifyEmailRequest) {
-        return null;
+        authService.verifyEmail(authVerifyEmailRequest.getToken());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -61,7 +61,7 @@ public class MailService {
         html = html.replace("{{displayName}}", user.getDisplayName());
 
         EmailVerificationTokenEntity token = generateVerificationToken(user);
-        String verificationLink = baseUrl + "/auth/verify-email?token=" + token.getVerificationToken();
+        String verificationLink = baseUrl + "chat-stack/api/v1/auth/verify-email?token=" + token.getVerificationToken();
 
         String emailContent = html.replace("{{verification_link}}", verificationLink);
         sendHtml(user.getEmail(), "Chat Stack - Email Activation", emailContent);

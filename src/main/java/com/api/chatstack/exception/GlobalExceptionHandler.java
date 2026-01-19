@@ -4,6 +4,7 @@ import com.chatstack.dto.Error;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -27,7 +28,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Error> handleValidationException(MethodArgumentNotValidException  ex) {
+        public ResponseEntity<Error> handleValidationException(MethodArgumentNotValidException  ex) {
         String description = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
@@ -36,6 +37,18 @@ public class GlobalExceptionHandler {
         error.setReason("Invalid Format");
         error.setCode("VALIDATION_ERROR");
         error.setDescription(description);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Error> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        Error error = new Error();
+        error.setReason(ex.getCause().getMessage());
+        error.setCode("JSON_PARSE_ERROR");
+        error.setDescription("There is something missing");
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
