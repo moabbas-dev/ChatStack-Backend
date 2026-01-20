@@ -1,5 +1,6 @@
 package com.api.chatstack.controllers;
 
+import com.api.chatstack.entities.UserEntity;
 import com.api.chatstack.enums.LoginType;
 import com.api.chatstack.exception.ChatStackException;
 import com.api.chatstack.services.AuthenticationService;
@@ -50,7 +51,12 @@ public class AuthenticationController implements AuthenticationFlowApi {
 
     @Override
     public ResponseEntity<Void> authResendVerification(AuthResendVerificationRequest authResendVerificationRequest) {
-        return null;
+        try {
+            authService.resendVerification(authResendVerificationRequest);
+        } catch (MessagingException | IOException ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     @Override

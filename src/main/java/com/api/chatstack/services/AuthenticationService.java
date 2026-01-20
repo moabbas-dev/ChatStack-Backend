@@ -2,7 +2,6 @@ package com.api.chatstack.services;
 
 import com.api.chatstack.entities.EmailVerificationTokenEntity;
 import com.api.chatstack.entities.UserEntity;
-import com.api.chatstack.enums.LoginType;
 import com.api.chatstack.enums.Role;
 import com.api.chatstack.exception.ChatStackException;
 import com.api.chatstack.mappers.UserMapper;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -192,5 +190,15 @@ public class AuthenticationService {
                     HttpStatus.BAD_REQUEST);
         }
         return userDTO;
+    }
+
+    public void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException {
+        UserEntity user = userRepository.findByEmail(authResendVerificationRequest.getEmail()).orElseThrow(() ->
+                new ChatStackException("User not found",
+                        "INVALID_CREDENTIALS",
+                        "Invalid Credentials",
+                        HttpStatus.NOT_FOUND));
+
+        mailSender.sendVerificationEmail(user);
     }
 }
