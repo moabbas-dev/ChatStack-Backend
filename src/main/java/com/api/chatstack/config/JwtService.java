@@ -6,6 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.swagger.models.auth.In;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -18,27 +19,39 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
-    private final String SECRET_KEY = "a3f44c1b25951104d34e4b1e04a2e649a2fd480d04d32b86286da598500ce811";
+
+    @Value("${jwt.secret-key}")
+    private String SECRET_KEY;
+
+    @Value("${jwt.access-token-expiration}")
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token-expiration}")
+    private long refreshTokenExpiration;
 
     public String extractUserEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-//    generates refresh token
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
-    }
-
-//    generates access token
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+    private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails, Date expiration) {
         return Jwts
                 .builder()
                 .claims(extraClaims)
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
+                .expiration(expiration)
                 .signWith(getSigninKey())
                 .compact();
+    }
+
+    public String generateAccessToken(UserDetails userDetails) {
+        Date expiration = new Date(System.currentTimeMillis() + accessTokenExpiration);
+        return generateToken(new HashMap<>(), userDetails, expiration);
+    }
+
+    public String generateRefreshToken(UserDetails userDetails) {
+        Date expiration = new Date(System.currentTimeMillis() + refreshTokenExpiration);
+        return generateToken(new HashMap<>(), userDetails, expiration);
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {

@@ -1,5 +1,6 @@
 package com.api.chatstack.services;
 
+import com.api.chatstack.config.JwtService;
 import com.api.chatstack.entities.EmailVerificationTokenEntity;
 import com.api.chatstack.entities.UserEntity;
 import com.api.chatstack.enums.Role;
@@ -14,6 +15,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +30,8 @@ import java.time.ZoneId;
 public class AuthenticationService {
 
     private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
@@ -91,7 +96,7 @@ public class AuthenticationService {
         return user;
     }
 
-    public User signup(SignupRequest signupRequest) throws MessagingException, IOException {
+    public AuthResult signup(SignupRequest signupRequest) throws MessagingException, IOException {
         if (userRepository.existsByEmail(signupRequest.getEmail()) || userRepository.existsByDisplayName(signupRequest.getDisplayName())) {
             throw new ChatStackException("User Already Exists",
                     "DUPLICATE_EMAIL",
@@ -123,13 +128,23 @@ public class AuthenticationService {
         UserEntity userEntity = userRepository.save(user);
         userEntity.setAvatarUrl(baseUrl + "chat-stack/api/v1/users/" + user.getId() + "/avatar/default.png");
 
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+
         mailSender.sendVerificationEmail(userEntity);
 
-        return userMapper.toDto(userEntity);
+        return new AuthResult()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .user(userMapper.toDto(userEntity));
     }
 
-    public User login(LoginRequest loginRequest) {
+    public AuthResult login(LoginRequest loginRequest) {
         User userDTO = null;
+        String accessToken = "";
+        String refreshToken = "";
+
 
         if (loginRequest == null || loginRequest.getLoginType() == null) {
             throw new ChatStackException("Login Type Not Provided",
@@ -150,6 +165,8 @@ public class AuthenticationService {
                         "LOGIN_TYPE_NOT_PROVIDED",
                         "Login type is not supported",
                         HttpStatus.BAD_REQUEST);
+
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
 
             UserEntity user = userRepository.findByEmail(email).orElseThrow(() ->
                     new ChatStackException("User not found",
@@ -174,8 +191,9 @@ public class AuthenticationService {
             user.setLastSeenAt(OffsetDateTime.now());
             user.setStatus(User.StatusEnum.ONLINE);
             userRepository.save(user);
-            // new refresh and access token (not implemented yet)
 
+            accessToken = jwtService.generateAccessToken(user);
+            refreshToken = jwtService.generateRefreshToken(user);
             userDTO = userMapper.toDto(user);
         } else if (loginRequest instanceof ProviderLogin providerLogin) {
             if (providerLogin.getLoginType() == null || providerLogin.getLoginType().trim().isEmpty())
@@ -189,7 +207,7 @@ public class AuthenticationService {
                     "Login type is not supported",
                     HttpStatus.BAD_REQUEST);
         }
-        return userDTO;
+        return new AuthResult().accessToken(accessToken).refreshToken(refreshToken).user(userDTO);
     }
 
     public void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException {

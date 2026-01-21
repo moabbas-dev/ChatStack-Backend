@@ -1,5 +1,6 @@
 package com.api.chatstack.config;
 
+import com.api.chatstack.enums.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,8 +26,22 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/**")
-                                .permitAll()
+                                .requestMatchers(
+                                    "/auth/signup",
+                                    "/auth/login",
+                                    "/auth/refresh-token",
+                                    "/auth/verify-email",
+                                    "/auth/resend-verification",
+                                    "/auth/forgot-password",
+                                    "/auth/reset-password"
+                                ).permitAll()
+                                .requestMatchers(
+                                    "/users/me",
+                                    "/users/{id}",
+                                    "/auth/logout",
+                                    "/auth/change-password"
+                                ).hasAnyAuthority(Role.USER.name(), Role.ADMIN.name())
+                                .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.name())
                                 .anyRequest()
                                 .authenticated())
                 .sessionManagement(sessionManagement ->

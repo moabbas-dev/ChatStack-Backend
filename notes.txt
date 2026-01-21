@@ -62,3 +62,35 @@ The user, The token itself, and Custom application data
 3- JWT Filter
 a. check the validity of request (if it contains the basic info such as Bearer ... and authrization headers)
 b. if the user is not authenticated => update the SecurityContextHolder
+
+
+Forgot Password (/auth/forgot-password)
+    1- Accept email address (no authentication required)
+    2- Check if user exists with that email
+    3- Generate a unique reset token (random UUID or JWT with short expiry like 1 hour)
+    4- Store token in database with user ID and expiration timestamp
+    5- Send email with reset link containing the token (e.g., yourapp.com/reset-password?token=xyz)
+    6- Always return 204 success - even if email doesn't exist (security: prevent email enumeration)
+
+Reset Password (/auth/reset-password)
+    1- Accept token and new password (no authentication required)
+    2- Validate new password meets requirements (length, complexity)
+    3- Find token in database and check if it's expired
+    4- If expired → throw 410 RESET_TOKEN_EXPIRED
+    5- If invalid/not found → throw 400 INVALID_TOKEN
+    6- Hash the new password
+    7- Update user's password in database
+    8- Delete/invalidate the reset token (one-time use)
+    9- Optionally: invalidate all existing refresh tokens (force re-login on all devices)
+    10- Return 204 success
+
+Change Password (/auth/change-password)
+    1- Require authentication (user must be logged in)
+    2- Accept current password and new password
+    3- Fetch authenticated user from database
+    4- Verify current password with passwordEncoder.matches()
+    5- If wrong → throw 400 INVALID_CURRENT_PASSWORD
+    6- Validate new password meets requirements
+    7- Hash and update password
+    8- Optionally: invalidate all refresh tokens except current session
+    9- Return 204 success
