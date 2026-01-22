@@ -27,21 +27,21 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers(
-                                    "/auth/signup",
-                                    "/auth/login",
-                                    "/auth/refresh-token",
-                                    "/auth/verify-email",
-                                    "/auth/resend-verification",
-                                    "/auth/forgot-password",
-                                    "/auth/reset-password"
+                                    "/chat-stack/api/v1/auth/signup",
+                                    "/chat-stack/api/v1/auth/login",
+                                    "/chat-stack/api/v1/auth/refresh-token",
+                                    "/chat-stack/api/v1/auth/verify-email",
+                                    "/chat-stack/api/v1/auth/resend-verification",
+                                    "/chat-stack/api/v1/auth/forgot-password",
+                                    "/chat-stack/api/v1/auth/reset-password"
                                 ).permitAll()
                                 .requestMatchers(
-                                    "/users/me",
-                                    "/users/{id}",
-                                    "/auth/logout",
-                                    "/auth/change-password"
+                                    "/chat-stack/api/v1/users/me",
+                                    "/chat-stack/api/v1/users/{id}",
+                                    "/chat-stack/api/v1/auth/logout",
+                                    "/chat-stack/api/v1/auth/change-password"
                                 ).hasAnyAuthority(Role.USER.name(), Role.ADMIN.name())
-                                .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.name())
+                                .requestMatchers("**/admin/**").hasAuthority(Role.ADMIN.name())
                                 .anyRequest()
                                 .authenticated())
                 .sessionManagement(sessionManagement ->

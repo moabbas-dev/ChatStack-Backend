@@ -34,7 +34,7 @@ spring:
 app:
   base-url: http://localhost:8080/
 jwt:
-  secret-key: a3f44c1b25951104d34e4b1e04a2e649a2fd480d04d32b86286da598500ce811
+  secret-key: a3cfd256a565152a6823cce8d6795ef8651e7dd5b10f4cf633e0d5540344d32c
   access-token-expiration: 900000
   refresh-token-expiration: 604800000
 
