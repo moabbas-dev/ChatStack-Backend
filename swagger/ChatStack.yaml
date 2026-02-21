@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: 3.0.1
 info:
   title: ChatStack API
   version: "1.0"
@@ -6,9 +6,11 @@ info:
 
 tags:
   - name: Users Management
-    description: Methods Related to users
+    description: Methods Related to Users
   - name: Authentication Flow
     description: Methods Related to Authentication
+  - name: Session Management
+    description: Methods Related to Active Sessions
 
 servers:
   - url: /chat-stack/api/v1
@@ -16,6 +18,9 @@ servers:
 security:
   - bearerAuth: []
 
+# ===========================================================================
+# COMPONENTS
+# ===========================================================================
 components:
   securitySchemes:
     bearerAuth:
@@ -24,6 +29,10 @@ components:
       bearerFormat: JWT
 
   schemas:
+
+    # -------------------------------------------------------------------------
+    # Core Domain
+    # -------------------------------------------------------------------------
     User:
       type: object
       required:
@@ -31,6 +40,7 @@ components:
         - email
         - fullname
         - display_name
+        - country
         - email_verified
         - status
         - created_at
@@ -45,48 +55,82 @@ components:
           type: string
         display_name:
           type: string
-#        password_hashed:
-#          type: string
-#          format: password
-#          nullable: true
-#          writeOnly: true
-#          x-field-extra-annotation: "@com.fasterxml.jackson.annotation.JsonIgnore"
         email_verified:
           type: boolean
         avatar_url:
           type: string
+          nullable: true
         status:
           type: string
           enum: [online, offline]
         timezone:
           type: string
-          description: IANA timezone (e.g. Europe/Paris)
+          description: IANA timezone
           example: Europe/Paris
         last_seen_at:
           type: string
           format: date-time
+          nullable: true
         created_at:
           type: string
           format: date-time
 
-    Error:
+    Session:
       type: object
+      required:
+        - id
+        - device_name
+        - created_at
+        - last_used_at
+        - is_current
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Session ID — use this to target logout of a specific device
+        device_name:
+          type: string
+          example: "Chrome on Windows"
+        device_type:
+          type: string
+          enum: [web, mobile, desktop, unknown]
+        ip_address:
+          type: string
+          example: "192.168.1.1"
+        created_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+        is_current:
+          type: boolean
+          description: True if this session corresponds to the token making the request
+
+    # -------------------------------------------------------------------------
+    # Error
+    # -------------------------------------------------------------------------
+    ErrorResponse:
+      type: object
+      required:
+        - reason
       properties:
         reason:
           type: string
           description: >-
-            HTTP error or Free text such as  Database Not Available , Invalid
-            Credential, Mandatory, Invalid Format,  Invalid Length,
-            ForbiddenValue, Invalid Data,...
+            HTTP error or free text such as Database Not Available,
+            Invalid Credential, Mandatory, Invalid Format, Invalid Length,
+            ForbiddenValue, Invalid Data, etc.
         code:
           type: string
-          description: 'Error Id,  Server Application error ID, SQL error Id, ....'
+          description: Server / SQL error ID
         description:
           type: string
-          description: Human-readable error description including Data and Value
-      required:
-        - reason
+          description: Human-readable error description including data and value
 
+    # -------------------------------------------------------------------------
+    # Auth Request Bodies
+    # -------------------------------------------------------------------------
     SignupRequest:
       type: object
       required:
@@ -98,7 +142,7 @@ components:
           type: string
           format: email
           maxLength: 255
-          example: "user@example.com"
+          example: user@example.com
         password:
           type: string
           writeOnly: true
@@ -106,91 +150,171 @@ components:
           minLength: 12
           pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"
           description: >
-            Password must be at least 12 characters and contain uppercase,
-            lowercase, number, and special character.
+            Must be at least 12 characters and contain uppercase, lowercase,
+            a digit, and a special character (@$!%*?&#).
         fullname:
           type: string
           minLength: 2
           maxLength: 255
-          example: "John Doe"
+          example: John Doe
         display_name:
           type: string
           minLength: 3
           maxLength: 50
           pattern: "^[a-zA-Z0-9._-]+$"
-          description: "Unique public username"
-          example: "john_doe"
+          description: Unique public username
+          example: john_doe
 
-    LoginRequest:
-      oneOf:
-        - $ref: '#/components/schemas/PasswordLogin'
-        - $ref: '#/components/schemas/ProviderLogin'
-      discriminator:
-        propertyName: login_type
-        mapping:
-          password: '#/components/schemas/PasswordLogin'
-          provider: '#/components/schemas/ProviderLogin'
-      properties:
-        login_type:
-          type: string
-      required:
-        - login_type
-
-    PasswordLogin:
+    # Password login — email + password only
+    PasswordLoginRequest:
       type: object
-      required: [login_type, email, password]
+      required:
+        - email
+        - password
       properties:
-        login_type:
-          type: string
-          example: password
         email:
           type: string
           format: email
+          example: user@example.com
         password:
           type: string
           format: password
           writeOnly: true
 
-    ProviderLogin:
+    # OAuth2 login — provider ID token exchange
+    OAuth2LoginRequest:
       type: object
-      required: [login_type, id_token]
+      required:
+        - id_token
       properties:
-        login_type:
-          type: string
-          example: provider
         id_token:
           type: string
-
-    AuthResponse:
-      type: object
-      properties:
-        accessToken:
+          description: >
+            ID token obtained from the OAuth2 provider (e.g. the credential
+            returned by Google Sign-In). The server validates it and either
+            logs in the linked account or creates a new one.
+        device_name:
           type: string
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30
-        user:
-          $ref: '#/components/schemas/User'
+          description: Optional human-readable device label
+          example: "Firefox on Ubuntu"
 
+    # -------------------------------------------------------------------------
+    # Auth Response Bodies
+    # -------------------------------------------------------------------------
+
+    # Returned on login / token refresh — refresh token travels via HttpOnly cookie
     AuthResult:
       type: object
+      required:
+        - access_token
+        - user
       properties:
-        accessToken:
+        access_token:
           type: string
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30
-        refreshToken:
-          type: string
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30
+          description: Short-lived JWT (e.g. 15 min)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         user:
           $ref: '#/components/schemas/User'
 
+    # Returned on signup — same shape, separate name for clarity
+    SignupResult:
+      type: object
+      required:
+        - access_token
+        - user
+      properties:
+        access_token:
+          type: string
+          description: Short-lived JWT. Email must be verified before full access.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/User'
 
+    RefreshResult:
+      type: object
+      required:
+        - access_token
+      properties:
+        access_token:
+          type: string
+          description: New short-lived JWT. Old refresh token is invalidated (rotation).
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    # -------------------------------------------------------------------------
+    # User Update Bodies
+    # -------------------------------------------------------------------------
+    UpdateUserRequest:
+      type: object
+      description: Fields to update for the current user. All fields are optional.
+      properties:
+        fullname:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: John Doe
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: "^[a-zA-Z0-9._-]+$"
+          example: john_doe
+        country:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: Lebanon
+        timezone:
+          type: string
+          description: IANA timezone
+          example: America/New_York
+        avatar_url:
+          type: string
+          nullable: true
+          example: "https://cdn.example.com/avatars/john.png"
+
+    AdminUpdateUserRequest:
+      type: object
+      description: Fields an admin can patch on any user account.
+      properties:
+        fullname:
+          type: string
+          minLength: 2
+          maxLength: 255
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 50
+        country:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: Lebanon
+        email_verified:
+          type: boolean
+        status:
+          type: string
+          enum: [online, offline]
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        timezone:
+          type: string
+
+# ===========================================================================
+# PATHS
+# ===========================================================================
 paths:
-#  User Management
+
+  # ===========================================================================
+  # USERS MANAGEMENT
+  # ===========================================================================
+
   /users/{id}:
     get:
       operationId: getUserById
       tags:
         - Users Management
-      summary: Get user by ID
+      summary: Get any user by ID (public profile)
       parameters:
         - name: id
           in: path
@@ -206,46 +330,45 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
         '400':
-          description: Invalid user ID format
+          description: Invalid UUID format
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
   /users/{id}/avatar/{avatar}:
     get:
       operationId: getUserAvatar
       tags:
         - Users Management
-      summary: Get user avatar by ID
-      description: Returns the user's avatar image. If the user has no custom avatar, a default avatar is returned.
+      summary: Get a user's avatar image
+      description: >
+        Returns the user's avatar image. If no custom avatar is set,
+        a default avatar is returned.
       parameters:
         - name: id
           in: path
@@ -262,9 +385,13 @@ paths:
             example: default.png
       responses:
         '200':
-          description: Avatar image
+          description: Avatar image binary
           content:
             image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
               schema:
                 type: string
                 format: binary
@@ -272,20 +399,17 @@ paths:
           description: User or avatar not found
         '410':
           description: Avatar is no longer available
+
+  # ---------------------------------------------------------------------------
+  # /users/me — Current authenticated user
+  # NOTE: id is NEVER passed as a query param; identity comes from the JWT.
+  # ---------------------------------------------------------------------------
   /users/me:
     get:
       operationId: getCurrentUser
       tags:
         - Users Management
-      summary: Get Current logged-in user
-      parameters:
-        - name: id
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-
+      summary: Get the current authenticated user
       responses:
         '200':
           description: Successful response
@@ -293,197 +417,159 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-        '400':
-          description: Invalid user
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
         '401':
-          description: Unauthorized
+          description: Unauthorized — missing or invalid token
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: User not found
+          description: User account no longer exists
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-    put:
-      operationId: setCurrentUser
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: patchCurrentUser
       tags:
         - Users Management
-      summary: Set current logged-in User Data
+      summary: Partially update the current user (only send fields to change)
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                id:
-                  type: string
-                  format: uuid
+              $ref: '#/components/schemas/UpdateUserRequest'
       responses:
         '200':
-          description: Successful response
+          description: User patched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
         '400':
-          description: Invalid user
+          description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
-        '403':
-          description: Forbidden
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: display_name already taken
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
-        '404':
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
     delete:
       operationId: deleteCurrentUser
       tags:
         - Users Management
-      summary: Delete current logged-in User Data
+      summary: Delete the current user account (soft or hard depending on policy)
       responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-        '400':
-          description: Invalid user
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
+        '204':
+          description: Account deleted successfully
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
-        '404':
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ---------------------------------------------------------------------------
+  # Admin endpoints
+  # ---------------------------------------------------------------------------
   /admin/users:
     get:
       operationId: getAllUsers
       tags:
         - Users Management
-      summary: Get All Users [Only for admins]
+      summary: List all users (admin only)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
       responses:
         '200':
-          description: Successful response
+          description: Paginated user list
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-        '400':
-          description: Something Is Invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  total_elements:
+                    type: integer
+                  total_pages:
+                    type: integer
+                  page:
+                    type: integer
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: Forbidden
+          description: Forbidden — admin role required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
-        '404':
-          description: No Users are found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
   /admin/users/{id}:
     patch:
-      operationId: setUserData
+      operationId: adminPatchUser
       tags:
         - Users Management
-      summary: Set User Data Manually By Admin [For Admin only]
+      summary: Partially update any user's data (admin only)
       parameters:
         - name: id
           in: path
@@ -491,55 +577,61 @@ paths:
           schema:
             type: string
             format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateUserRequest'
       responses:
         '200':
-          description: Successful response
+          description: User updated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
         '400':
-          description: Something Is Invalid
+          description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: No Users are found
+          description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
 
-# Authentication Flow
+  # ===========================================================================
+  # AUTHENTICATION FLOW
+  # ===========================================================================
+
   /auth/signup:
     post:
       operationId: authSignup
       tags:
         - Authentication Flow
-      summary: Create a new account
+      summary: Create a new account with email and password
+      security: []
       requestBody:
         required: true
         content:
@@ -548,251 +640,408 @@ paths:
               $ref: '#/components/schemas/SignupRequest'
       responses:
         '201':
-          description: Account created successfully
+          description: >
+            Account created. A refresh token is set as an HttpOnly cookie.
+            The user must verify their email before accessing protected resources.
+          headers:
+            Set-Cookie:
+              description: >
+                HttpOnly, Secure, SameSite=Strict refresh token cookie.
+                Scoped to path /chat-stack/api/v1/auth/refresh-token.
+              schema:
+                type: string
+                example: "refreshToken=<token>; HttpOnly; Secure; SameSite=Strict; Path=/chat-stack/api/v1/auth/refresh-token"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
-
+                $ref: '#/components/schemas/SignupResult'
         '400':
-          description: Invalid signup data
+          description: Validation error (invalid email, weak password, etc.)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
-          description: Email already exists
+          description: Email already registered
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/login:
     post:
       operationId: authLogin
       tags:
         - Authentication Flow
-      summary: Login for existing account
+      summary: Login with email and password
+      description: >
+        Authenticates with credentials. On success, issues a short-lived access token
+        in the response body and rotates a refresh token via an HttpOnly cookie.
+        Each successful login creates a new session row (multi-device support).
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: '#/components/schemas/PasswordLoginRequest'
       responses:
         '200':
-          description: Login successful, tokens issued
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: >
+                HttpOnly, Secure, SameSite=Strict refresh token cookie.
+                Scoped to path /chat-stack/api/v1/auth/refresh-token.
+              schema:
+                type: string
+                example: "refreshToken=<token>; HttpOnly; Secure; SameSite=Strict; Path=/chat-stack/api/v1/auth/refresh-token"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
-
+                $ref: '#/components/schemas/AuthResult'
         '400':
-          description: Invalid request format
+          description: Invalid request body
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: Invalid credentials
+          description: Wrong email or password
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: Email not verified
+          description: Email not yet verified
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/ErrorResponse'
         '429':
-          description: Too many login attempts
+          description: Too many login attempts — rate limited
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/oauth2/{provider}:
+    post:
+      operationId: authOAuth2Login
+      tags:
+        - Authentication Flow
+      summary: Login or register via an OAuth2 provider (e.g. Google)
+      description: >
+        Exchanges the provider's ID token for a ChatStack session.
+        If the provider account is not yet linked to any user, a new account is
+        created automatically (no separate signup step needed).
+        If the email already exists under a password account, a 409 is returned
+        with a link-account hint.
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, github]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuth2LoginRequest'
+      responses:
+        '200':
+          description: Existing account — login successful
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie (same as password login)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+        '201':
+          description: New account created via OAuth2 provider
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignupResult'
+        '400':
+          description: Invalid or expired id_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: >
+            Email already registered via password. Prompt user to link accounts
+            or login with their password instead.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/logout:
     post:
       operationId: authLogout
       tags:
         - Authentication Flow
-      summary: Logout current user
-
+      summary: Logout — revoke one session, all sessions, or a specific device
+      description: >
+        If `session_id` is omitted and `all_devices` is false (the default),
+        only the current session (identified by the refresh token cookie) is revoked.
+        Use `session_id` to log out a specific device. Use `all_devices: true`
+        to revoke every active session for this user.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                  format: uuid
+                  description: >
+                    Target a specific session to revoke.
+                    Must belong to the authenticated user.
+                all_devices:
+                  type: boolean
+                  default: false
+                  description: If true, revokes all sessions regardless of session_id.
       responses:
         '204':
-          description: Logout successful
+          description: Session(s) revoked successfully
+          headers:
+            Set-Cookie:
+              description: Clears the refreshToken cookie
+              schema:
+                type: string
+                example: "refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/chat-stack/api/v1/auth/refresh-token; Max-Age=0"
         '401':
           description: Not authenticated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: session_id does not belong to the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: session_id not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/refresh-token:
     post:
       operationId: authRefreshToken
       tags:
         - Authentication Flow
-      summary: Refresh access token
-      security: [ ]   # refresh token handled via cookie
+      summary: Rotate refresh token and issue a new access token
+      description: >
+        Reads the refresh token from the HttpOnly cookie.
+        Validates the token, issues a new access token, rotates the refresh
+        token (old one is immediately invalidated — token family rotation).
+        If the presented token has already been rotated (reuse detected),
+        the entire token family is revoked to contain a potential breach.
+      security: []   # authenticated via HttpOnly cookie, not Bearer
       responses:
         '200':
-          description: New access token issued
+          description: New access token issued; new refresh token set in cookie
+          headers:
+            Set-Cookie:
+              description: Rotated HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResult'
         '401':
-          description: Invalid or expired refresh token
+          description: Missing, invalid, or expired refresh token
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: Refresh token revoked
+          description: >
+            Refresh token already revoked or reuse detected —
+            all sessions in the token family have been invalidated.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/verify-email:
     post:
       operationId: authVerifyEmail
       tags:
         - Authentication Flow
-      summary: Verify user email
-      security: [ ]
+      summary: Verify user email with token from the verification link
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [ token ]
+              required:
+                - token
               properties:
                 token:
                   type: string
+                  description: The verification token sent by email
       responses:
         '204':
           description: Email verified successfully
         '400':
-          description: Invalid or malformed token
+          description: Token is missing, malformed, or already used
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
         '410':
-          description: Verification token expired
+          description: Verification token has expired
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/resend-verification:
     post:
       operationId: authResendVerification
       tags:
         - Authentication Flow
-      summary: Resend verification email
-      security: [ ]
+      summary: Resend the email verification link
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [ email ]
+              required:
+                - email
               properties:
                 email:
                   type: string
                   format: email
       responses:
         '204':
-          description: Verification email resent
+          description: Verification email resent (or silently ignored if already verified)
         '400':
           description: Email already verified
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
         '429':
-          description: Too many requests
+          description: Too many resend requests
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/forgot-password:
     post:
       operationId: authForgotPassword
       tags:
         - Authentication Flow
-      summary: Request password reset
-      security: [ ]
+      summary: Request a password reset email
+      description: >
+        Always returns 204 regardless of whether the email is registered,
+        to avoid user enumeration.
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [ email ]
+              required:
+                - email
               properties:
                 email:
                   type: string
                   format: email
       responses:
         '204':
-          description: Password reset email sent
+          description: Reset email sent (if account exists)
         '429':
           description: Too many requests
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/reset-password:
     post:
       operationId: authResetPassword
       tags:
         - Authentication Flow
-      summary: Reset password
-      security: [ ]
+      summary: Reset password using the token from the reset email
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [ token, new_password ]
+              required:
+                - token
+                - new_password
               properties:
                 token:
                   type: string
                 new_password:
                   type: string
-                  writeOnly: true
                   format: password
+                  writeOnly: true
+                  minLength: 12
+                  pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"
       responses:
         '204':
           description: Password reset successfully
         '400':
-          description: Invalid password or token
+          description: Invalid password format or token
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
         '410':
-          description: Reset token expired
+          description: Reset token expired or already used
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/change-password:
     post:
       operationId: authChangePassword
       tags:
         - Authentication Flow
-      summary: Change current password
+      summary: Change password while authenticated (knows current password)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [ current_password, new_password ]
+              required:
+                - current_password
+                - new_password
               properties:
                 current_password:
                   type: string
@@ -802,18 +1051,88 @@ paths:
                   type: string
                   format: password
                   writeOnly: true
+                  minLength: 12
+                  pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"
       responses:
         '204':
           description: Password changed successfully
         '400':
-          description: Invalid current password
+          description: Current password is wrong or new password fails validation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Not authenticated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ===========================================================================
+  # SESSION MANAGEMENT
+  # ===========================================================================
+
+  /auth/sessions:
+    get:
+      operationId: listSessions
+      tags:
+        - Session Management
+      summary: List all active sessions for the current user
+      description: >
+        Returns all non-revoked, non-expired sessions.
+        The session with `is_current: true` matches the token making this request.
+      responses:
+        '200':
+          description: Active sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Session'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/sessions/{sessionId}:
+    delete:
+      operationId: revokeSession
+      tags:
+        - Session Management
+      summary: Revoke (logout) a specific session by ID
+      description: >
+        Allows the user to remotely logout a device. The session must belong
+        to the authenticated user. Deleting the current session is equivalent
+        to a standard logout.
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Session revoked
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: This session does not belong to the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

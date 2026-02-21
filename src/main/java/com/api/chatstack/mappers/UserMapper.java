@@ -4,7 +4,6 @@ import com.api.chatstack.entities.UserEntity;
 import com.chatstack.dto.User;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
 
 @Component
 public class UserMapper implements Mapper<User, UserEntity> {

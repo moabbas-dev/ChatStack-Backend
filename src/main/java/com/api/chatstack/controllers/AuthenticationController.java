@@ -5,24 +5,18 @@ import com.api.chatstack.services.AuthenticationService;
 import com.chatstack.api.AuthenticationFlowApi;
 import com.chatstack.dto.*;
 import jakarta.mail.MessagingException;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Objects;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/chat-stack/api/v1")
 public class AuthenticationController implements AuthenticationFlowApi {
 
     private final AuthenticationService authService;
@@ -37,13 +31,13 @@ public class AuthenticationController implements AuthenticationFlowApi {
     public ResponseEntity<Void> authForgotPassword(AuthResendVerificationRequest authResendVerificationRequest) {
         return null;
     }
+
     @Override
-//    login request either: password or provider
-    public ResponseEntity<AuthResponse> authLogin(LoginRequest loginRequest) {
-        AuthResult result = authService.login(loginRequest);
+    public ResponseEntity<AuthResult> authLogin(PasswordLoginRequest passwordLoginRequest) {
+        AuthResult result = authService.login(passwordLoginRequest);
         ResponseCookie refreshCookie = ResponseCookie.from(
                         "refreshToken",
-                        result.getRefreshToken()
+                        result.getAccessToken()
                 )
                 .httpOnly(true)
                 .secure(false) // true in production (HTTPS)
@@ -57,16 +51,21 @@ public class AuthenticationController implements AuthenticationFlowApi {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(new AuthResponse().accessToken(result.getAccessToken()).user(result.getUser()));
+                .body(new AuthResult().accessToken(result.getAccessToken()).user(result.getUser()));
     }
 
     @Override
-    public ResponseEntity<Void> authLogout() {
+    public ResponseEntity<Void> authLogout(AuthLogoutRequest authLogoutRequest) {
         return null;
     }
 
     @Override
-    public ResponseEntity<Void> authRefreshToken() {
+    public ResponseEntity<AuthResult> authOAuth2Login(String provider, OAuth2LoginRequest oauth2LoginRequest) {
+        return null;
+    }
+
+    @Override
+    public ResponseEntity<RefreshResult> authRefreshToken() {
         return null;
     }
 
@@ -86,10 +85,10 @@ public class AuthenticationController implements AuthenticationFlowApi {
     }
 
     @Override
-    public ResponseEntity<AuthResponse> authSignup(SignupRequest signupRequest) {
+    public ResponseEntity<SignupResult> authSignup(SignupRequest signupRequest) {
         try {
             AuthResult result = authService.signup(signupRequest);
-            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", result.getRefreshToken())
+            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", result.getAccessToken())
                     .httpOnly(true)
                     .secure(false) // true in production (HTTPS)
                     .sameSite("Lax")
@@ -101,7 +100,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .headers(headers)
-                    .body(new AuthResponse().accessToken(result.getAccessToken()).user(result.getUser()));
+                    .body(new SignupResult().accessToken(result.getAccessToken()).user(result.getUser()));
         } catch (MessagingException | IOException ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }

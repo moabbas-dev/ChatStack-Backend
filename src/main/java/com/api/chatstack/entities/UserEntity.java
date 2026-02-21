@@ -4,10 +4,7 @@ import com.api.chatstack.enums.Role;
 import com.chatstack.dto.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -66,6 +63,7 @@ public class UserEntity implements UserDetails {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private OffsetDateTime createdAt;
 
+    @NonNull
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.name()));
@@ -76,6 +74,7 @@ public class UserEntity implements UserDetails {
         return this.passwordHashed;
     }
 
+    @NonNull
     @Override
     public String getUsername() {
         return this.email;

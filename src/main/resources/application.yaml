@@ -51,3 +51,9 @@ jwt:
 #  UserDto toDto(User user);
 #  User toEntity(UserDto dto);
 #}
+springdoc:
+  swagger-ui:
+    url: /swagger/ChatStack.yaml
+server:
+  servlet:
+    context-path: /chat-stack/api/v1

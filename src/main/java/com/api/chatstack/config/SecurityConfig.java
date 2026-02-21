@@ -4,6 +4,7 @@ import com.api.chatstack.enums.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,32 +21,87 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
 
+    // SWAGGER
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+    @Order(1)
+    public SecurityFilterChain swaggerFilterChain(HttpSecurity http) {
+        return http
+                .securityMatcher("/swagger/**", "/swagger-ui/**", "/v3/api-docs/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .build();
+    }
+
+    // AUTH
+    @Bean
+    @Order(2)
+    public SecurityFilterChain authFilterChain(HttpSecurity http) {
+        return http
+                .securityMatcher("/chat-stack/api/v1/auth/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/chat-stack/api/v1/auth/signup",
+                                "/chat-stack/api/v1/auth/login",
+                                "/chat-stack/api/v1/auth/refresh-token",
+                                "/chat-stack/api/v1/auth/verify-email",
+                                "/chat-stack/api/v1/auth/resend-verification",
+                                "/chat-stack/api/v1/auth/forgot-password",
+                                "/chat-stack/api/v1/auth/reset-password"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+    // ADMIN
+    @Bean
+    @Order(3)
+    public SecurityFilterChain adminFilterChain(HttpSecurity http) {
+        return http
+                .securityMatcher("/admin/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().hasAuthority(Role.ADMIN.name())
+                )
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+    // USER
+    @Bean
+    @Order(4)
+    public SecurityFilterChain userFilterChain(HttpSecurity http) {
+        return http
+                .securityMatcher("/chat-stack/api/v1/users/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/chat-stack/api/v1/users/me",
+                                "/chat-stack/api/v1/users/{id}"
+                        ).hasAnyAuthority(Role.USER.name(), Role.ADMIN.name())
+                )
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+    // FALLBACK (ANY OTHER REQUEST MUST BE AUTHENTICATED)
+    @Bean
+    @Order(5)
+    public SecurityFilterChain defaultFilterChain(HttpSecurity http) {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(authorizeRequests ->
-                        authorizeRequests
-                                .requestMatchers(
-                                    "/chat-stack/api/v1/auth/signup",
-                                    "/chat-stack/api/v1/auth/login",
-                                    "/chat-stack/api/v1/auth/refresh-token",
-                                    "/chat-stack/api/v1/auth/verify-email",
-                                    "/chat-stack/api/v1/auth/resend-verification",
-                                    "/chat-stack/api/v1/auth/forgot-password",
-                                    "/chat-stack/api/v1/auth/reset-password"
-                                ).permitAll()
-                                .requestMatchers(
-                                    "/chat-stack/api/v1/users/me",
-                                    "/chat-stack/api/v1/users/{id}",
-                                    "/chat-stack/api/v1/auth/logout",
-                                    "/chat-stack/api/v1/auth/change-password"
-                                ).hasAnyAuthority(Role.USER.name(), Role.ADMIN.name())
-                                .requestMatchers("**/admin/**").hasAuthority(Role.ADMIN.name())
-                                .anyRequest()
-                                .authenticated())
-                .sessionManagement(sessionManagement ->
-                        sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

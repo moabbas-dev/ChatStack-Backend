@@ -1,14 +1,15 @@
 package com.api.chatstack.utils;
 
 import com.api.chatstack.exception.ChatStackException;
-import com.chatstack.dto.Error;
+import com.chatstack.dto.ErrorResponse;
+import io.micrometer.common.util.StringUtils;
 import org.springframework.http.HttpStatus;
 
 import java.util.regex.Pattern;
 
 public class Validation {
     public static boolean isPasswordValid(String password) {
-        Error error = new Error();
+        ErrorResponse error = new ErrorResponse();
         boolean result = true;
 
         if (password == null) {
@@ -61,7 +62,7 @@ public class Validation {
     }
 
     public static boolean isEmailValid(String email) {
-        if (email == null || email.isBlank()) {
+        if (StringUtils.isEmpty(email)) {
             throw new ChatStackException(
                     "email is required",
                     "EMAIL_REQUIRED",
@@ -77,7 +78,7 @@ public class Validation {
     }
 
     public static boolean isUsernameValid(String username) {
-        if (username == null || username.trim().isBlank()) {
+        if (StringUtils.isEmpty(username)) {
             throw new ChatStackException(
                     "Invalid Username",
                     "USERNAME_REQUIRED",
@@ -119,7 +120,7 @@ public class Validation {
     }
 
     public static String fullnameValidation(String fullname) {
-        if (fullname == null || fullname.isBlank()) {
+        if (StringUtils.isEmpty(fullname)) {
             throw new ChatStackException(
                     "Invalid Fullname",
                     "FULLNAME_INVALID",

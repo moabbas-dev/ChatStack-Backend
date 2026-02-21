@@ -136,78 +136,47 @@ public class AuthenticationService {
 
         return new AuthResult()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .user(userMapper.toDto(userEntity));
     }
 
-    public AuthResult login(LoginRequest loginRequest) {
+    public AuthResult login(PasswordLoginRequest loginRequest) {
         User userDTO = null;
         String accessToken = "";
         String refreshToken = "";
 
+        String email = loginRequest.getEmail();
+        String password = loginRequest.getPassword();
 
-        if (loginRequest == null || loginRequest.getLoginType() == null) {
-            throw new ChatStackException("Login Type Not Provided",
-                    "INCORRECT_LOGIN_TYPE",
-                    "Login type not provided",
-                    HttpStatus.BAD_REQUEST);
+        if (!Validation.isEmailValid(email) || !Validation.isPasswordValid(password)) {
+            throw new ChatStackException("email or password is invalid",
+                    "EMAIL_NOT_VERIFIED",
+                    "Your Email or password is invalid",
+                    HttpStatus.FORBIDDEN);
         }
-        else if (loginRequest instanceof PasswordLogin passwordLogin) {
-            String email = passwordLogin.getEmail();
-            String password = passwordLogin.getPassword();
 
-            if (!Validation.isEmailValid(email) || !Validation.isPasswordValid(password)) {
-                return null;
-            }
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
 
-            if (passwordLogin.getLoginType() == null || passwordLogin.getLoginType().trim().isEmpty())
-                throw new ChatStackException("Login type is not provided",
-                        "LOGIN_TYPE_NOT_PROVIDED",
-                        "Login type is not supported",
-                        HttpStatus.BAD_REQUEST);
+        UserEntity user = userRepository.findByEmail(email).orElseThrow(() ->
+                new ChatStackException("User not found",
+                "INVALID_CREDENTIALS",
+                "Invalid Credentials",
+                HttpStatus.UNAUTHORIZED));
 
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
-
-            UserEntity user = userRepository.findByEmail(email).orElseThrow(() ->
-                    new ChatStackException("User not found",
-                    "INVALID_CREDENTIALS",
-                    "Invalid Credentials",
-                    HttpStatus.UNAUTHORIZED));
-
-            if (!passwordEncoder.matches(password, user.getPasswordHashed())) {
-                throw new ChatStackException("password does not match",
-                        "INVALID_CREDENTIALS",
-                        "Invalid Credentials",
-                        HttpStatus.UNAUTHORIZED);
-            }
-
-            if (!user.isEmailVerified()) {
-                throw new ChatStackException("email is not verified",
-                        "EMAIL_NOT_VERIFIED",
-                        "Your Email is not verified",
-                        HttpStatus.FORBIDDEN);
-            }
-
-            user.setLastSeenAt(OffsetDateTime.now());
-            user.setStatus(User.StatusEnum.ONLINE);
-            userRepository.save(user);
-
-            accessToken = jwtService.generateAccessToken(user);
-            refreshToken = jwtService.generateRefreshToken(user);
-            userDTO = userMapper.toDto(user);
-        } else if (loginRequest instanceof ProviderLogin providerLogin) {
-            if (providerLogin.getLoginType() == null || providerLogin.getLoginType().trim().isEmpty())
-                throw new ChatStackException("Login type is not provided",
-                        "LOGIN_TYPE_NOT_PROVIDED",
-                        "Login type is not supported",
-                        HttpStatus.BAD_REQUEST);
-        } else {
-            throw new ChatStackException("Login Type Not Supported",
-                    "INCORRECT_LOGIN_TYPE",
-                    "Login type is not supported",
-                    HttpStatus.BAD_REQUEST);
+        if (!user.isEmailVerified()) {
+            throw new ChatStackException("email is not verified",
+                    "EMAIL_NOT_VERIFIED",
+                    "Your Email is not verified",
+                    HttpStatus.FORBIDDEN);
         }
-        return new AuthResult().accessToken(accessToken).refreshToken(refreshToken).user(userDTO);
+
+        user.setLastSeenAt(OffsetDateTime.now());
+        user.setStatus(User.StatusEnum.ONLINE);
+        userRepository.save(user);
+
+        accessToken = jwtService.generateAccessToken(user);
+        refreshToken = jwtService.generateRefreshToken(user);
+        userDTO = userMapper.toDto(user);
+        return new AuthResult().accessToken(accessToken).user(userDTO);
     }
 
     public void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException {
