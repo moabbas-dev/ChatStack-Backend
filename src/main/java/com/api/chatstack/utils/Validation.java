@@ -13,29 +13,19 @@ public class Validation {
         boolean result = true;
 
         if (password == null) {
-            error.setCode("PASSWORD_REQUIRED");
-            error.setReason("Invalid Length");
-            error.setDescription("Password is required");
+            error = error.code("PASSWORD_REQUIRED").reason("Invalid Password").description("Password is required");
             result = false;
         } else if (password.length() < 12) {
-            error.setCode("PASSWORD_TOO_SHORT");
-            error.setReason("Invalid Length");
-            error.setDescription("Password must be at least 12 characters");
+            error = error.code("PASSWORD_TOO_SHORT").reason("Invalid Length").description("Password must be at least 12 characters");
             result = false;
         } else if (password.contains(" ")) {
-            error.setCode("PASSWORD_INVALID");
-            error.setReason("Invalid Password");
-            error.setDescription("Password contains invalid characters");
+            error = error.code("PASSWORD_INVALID").reason("Invalid Password").description("Password cannot contain spaces");
             result = false;
         } else if (!password.matches(".*[!\"#$%&'()*+,\\-./:;<=>?@\\[\\]^_`{|}~].*")) {
-            error.setCode("PASSWORD_INVALID");
-            error.setReason("Invalid Password");
-            error.setDescription("Password must contain at least one special character");
+            error = error.code("PASSWORD_INVALID").reason("Invalid Password").description("Password must contain at least one special character");
             result = false;
         } else if (!password.matches(".*[a-z].*")) {
-            error.setCode("PASSWORD_INVALID");
-            error.setReason("Invalid Password");
-            error.setDescription("Password must contain at least one lowercase character");
+            error = error.code("PASSWORD_INVALID").reason("Invalid Password").description("Password must contain at least one lowercase character");
             result = false;
         } else if (!password.matches(".*[A-Z].*")) {
             error.setCode("PASSWORD_INVALID");

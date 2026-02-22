@@ -1,6 +1,7 @@
 package com.api.chatstack.services;
 
 import com.api.chatstack.exception.ChatStackException;
+import com.api.chatstack.exception.UserNotFoundException;
 import com.api.chatstack.repositories.UserRepository;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -18,12 +19,7 @@ public class UserManagementService {
 
     public Resource getUserAvatar(UUID id, String avatar) {
         userRepository.findById(id)
-                .orElseThrow(() -> new ChatStackException(
-                        "User not found",
-                        "USER_NOT_FOUND",
-                        "No user exists with the given ID.",
-                        HttpStatus.NOT_FOUND
-                ));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         // Only allow default avatar for now
         if (!"default.png".equals(avatar)) {

@@ -4,12 +4,13 @@ import com.api.chatstack.config.JwtService;
 import com.api.chatstack.entities.EmailVerificationTokenEntity;
 import com.api.chatstack.entities.UserEntity;
 import com.api.chatstack.enums.Role;
-import com.api.chatstack.exception.ChatStackException;
+import com.api.chatstack.exception.*;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.EmailVerificationTokenRepository;
 import com.api.chatstack.repositories.UserRepository;
 import com.api.chatstack.utils.Validation;
 import com.chatstack.dto.*;
+import io.micrometer.common.util.StringUtils;
 import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -40,32 +41,20 @@ public class AuthenticationService {
     private String baseUrl;
 
     public void verifyEmail(String token) {
-        if (token == null || token.trim().isEmpty()) {
-            throw new ChatStackException("No Token Provided",
-                    "NO_TOKEN_EXIST",
-                    "No Token provided",
-                    HttpStatus.BAD_REQUEST);
+        if (StringUtils.isEmpty(token)) {
+            throw new NoTokenProvidedException("No token provided");
         }
 
         EmailVerificationTokenEntity emailVerificationTokenEntity = emailVerificationTokenRepository.
                 findByVerificationToken(token).orElseThrow(() ->
-                    new ChatStackException("Invalid Token",
-                    "INVALID_VERIFICATION_LINK",
-                    "Invalid verification link",
-                    HttpStatus.BAD_REQUEST));
+                    new InvalidVerificationLinkException("Invalid Verification Token"));
 
         if (emailVerificationTokenEntity.isUsed()) {
-            throw new ChatStackException("Token is already used",
-                    "TOKEN_ALREADY_USED",
-                    "Token is already used",
-                    HttpStatus.BAD_REQUEST);
+            throw new TokenExpiredException("Token is already used");
         }
 
         if (emailVerificationTokenEntity.getExpiresAt().isBefore(OffsetDateTime.now())) {
-            throw new ChatStackException("Expired Token",
-                    "TOKEN_EXPIRED",
-                    "Token is expired",
-                    HttpStatus.GONE);
+            throw new TokenExpiredException("Token is expired");
         }
 
         UserEntity user = getUserEntity(emailVerificationTokenEntity);
@@ -79,17 +68,11 @@ public class AuthenticationService {
         UserEntity user = emailVerificationTokenEntity.getUser();
 
         if (user == null) {
-            throw new ChatStackException("User not found",
-                    "USER_NOT_FOUND",
-                    "No User found for the provided token",
-                    HttpStatus.BAD_REQUEST);
+            throw new UserNotFoundException("User not found");
         }
 
         if (user.isEmailVerified()) {
-            throw new ChatStackException("Email already verified",
-                    "EMAIL_ALREADY_VERIFIED",
-                    "Your email is already verified",
-                    HttpStatus.BAD_REQUEST);
+            throw new EmailAlreadyVerifiedException("Email is already verified");
         }
 
         user.setEmailVerified(true);
@@ -97,13 +80,6 @@ public class AuthenticationService {
     }
 
     public AuthResult signup(SignupRequest signupRequest) throws MessagingException, IOException {
-        if (userRepository.existsByEmail(signupRequest.getEmail()) || userRepository.existsByDisplayName(signupRequest.getDisplayName())) {
-            throw new ChatStackException("User Already Exists",
-                    "DUPLICATE_EMAIL",
-                    "User with email " + signupRequest.getEmail() + " already exists",
-                    HttpStatus.CONFLICT);
-        }
-
         if (!Validation.isPasswordValid(signupRequest.getPassword())
         || !Validation.isEmailValid(signupRequest.getEmail())
         || !Validation.isUsernameValid(signupRequest.getDisplayName())) {
@@ -147,26 +123,21 @@ public class AuthenticationService {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
 
-        if (!Validation.isEmailValid(email) || !Validation.isPasswordValid(password)) {
-            throw new ChatStackException("email or password is invalid",
-                    "EMAIL_NOT_VERIFIED",
-                    "Your Email or password is invalid",
-                    HttpStatus.FORBIDDEN);
+        if (!Validation.isEmailValid(email)) {
+            throw new InvalidEmailException("Your Email is invalid");
+        }
+
+        if (!Validation.isPasswordValid(password)) {
+            throw new InvalidPasswordException("Your Password is invalid");
         }
 
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
 
         UserEntity user = userRepository.findByEmail(email).orElseThrow(() ->
-                new ChatStackException("User not found",
-                "INVALID_CREDENTIALS",
-                "Invalid Credentials",
-                HttpStatus.UNAUTHORIZED));
+                new UserNotFoundException("User not found"));
 
         if (!user.isEmailVerified()) {
-            throw new ChatStackException("email is not verified",
-                    "EMAIL_NOT_VERIFIED",
-                    "Your Email is not verified",
-                    HttpStatus.FORBIDDEN);
+            throw new UnverifiedEmailException("Your email is not verified. Please verify your email before logging in.");
         }
 
         user.setLastSeenAt(OffsetDateTime.now());
@@ -181,10 +152,7 @@ public class AuthenticationService {
 
     public void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException {
         UserEntity user = userRepository.findByEmail(authResendVerificationRequest.getEmail()).orElseThrow(() ->
-                new ChatStackException("User not found",
-                        "INVALID_CREDENTIALS",
-                        "Invalid Credentials",
-                        HttpStatus.NOT_FOUND));
+                new UserNotFoundException("User not found"));
 
         mailSender.sendVerificationEmail(user);
     }
