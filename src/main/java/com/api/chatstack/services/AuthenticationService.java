@@ -8,14 +8,13 @@ import com.api.chatstack.exception.*;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.EmailVerificationTokenRepository;
 import com.api.chatstack.repositories.UserRepository;
-import com.api.chatstack.utils.Validation;
+import com.api.chatstack.utils.ValidationUtils;
 import com.chatstack.dto.*;
 import io.micrometer.common.util.StringUtils;
 import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -80,13 +79,11 @@ public class AuthenticationService {
     }
 
     public AuthResult signup(SignupRequest signupRequest) throws MessagingException, IOException {
-        if (!Validation.isPasswordValid(signupRequest.getPassword())
-        || !Validation.isEmailValid(signupRequest.getEmail())
-        || !Validation.isUsernameValid(signupRequest.getDisplayName())) {
-            return null;
-        }
+        ValidationUtils.validatePassword(signupRequest.getPassword());
+        ValidationUtils.validateEmail(signupRequest.getEmail());
+        ValidationUtils.validateUsername(signupRequest.getDisplayName());
 
-        String fullname = Validation.fullnameValidation(signupRequest.getFullname());
+        String fullname = ValidationUtils.validateAndNormalizeFullname(signupRequest.getFullname());
 
         UserEntity user = UserEntity.builder()
                 .fullName(fullname)
@@ -123,13 +120,8 @@ public class AuthenticationService {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
 
-        if (!Validation.isEmailValid(email)) {
-            throw new InvalidEmailException("Your Email is invalid");
-        }
-
-        if (!Validation.isPasswordValid(password)) {
-            throw new InvalidPasswordException("Your Password is invalid");
-        }
+        ValidationUtils.validateEmail(email);
+        ValidationUtils.validatePassword(password);
 
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
 
