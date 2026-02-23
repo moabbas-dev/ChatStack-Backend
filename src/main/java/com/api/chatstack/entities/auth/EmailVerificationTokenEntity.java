@@ -1,4 +1,4 @@
-package com.api.chatstack.entities;
+package com.api.chatstack.entities.auth;
 
 import jakarta.persistence.*;
 
@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "email_verification_token")
+@Table(name = "t_email_verification_tokens")
 @AllArgsConstructor
 @NoArgsConstructor
 @Data

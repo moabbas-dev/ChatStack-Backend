@@ -1,6 +1,6 @@
 package com.api.chatstack.mappers;
 
-import com.api.chatstack.entities.UserEntity;
+import com.api.chatstack.entities.auth.UserEntity;
 import com.chatstack.dto.User;
 import org.springframework.stereotype.Component;
 

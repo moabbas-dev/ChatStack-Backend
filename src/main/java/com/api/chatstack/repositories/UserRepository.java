@@ -1,6 +1,6 @@
 package com.api.chatstack.repositories;
 
-import com.api.chatstack.entities.UserEntity;
+import com.api.chatstack.entities.auth.UserEntity;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;

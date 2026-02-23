@@ -1,8 +1,8 @@
 package com.api.chatstack.services;
 
 import com.api.chatstack.config.JwtService;
-import com.api.chatstack.entities.EmailVerificationTokenEntity;
-import com.api.chatstack.entities.UserEntity;
+import com.api.chatstack.entities.auth.EmailVerificationTokenEntity;
+import com.api.chatstack.entities.auth.UserEntity;
 import com.api.chatstack.exception.*;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.EmailVerificationTokenRepository;

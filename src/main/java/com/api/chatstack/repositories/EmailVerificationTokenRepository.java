@@ -1,6 +1,6 @@
 package com.api.chatstack.repositories;
 
-import com.api.chatstack.entities.EmailVerificationTokenEntity;
+import com.api.chatstack.entities.auth.EmailVerificationTokenEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

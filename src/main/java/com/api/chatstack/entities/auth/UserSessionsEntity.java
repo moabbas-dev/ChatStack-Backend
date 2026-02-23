@@ -1,4 +1,4 @@
-package com.api.chatstack.entities;
+package com.api.chatstack.entities.auth;
 
 import com.chatstack.dto.Session;
 import jakarta.persistence.*;
@@ -12,7 +12,7 @@ import java.net.InetAddress;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Table(name = "user_sessions")
+@Table(name = "t_user_sessions")
 @Entity
 @Data
 @Builder

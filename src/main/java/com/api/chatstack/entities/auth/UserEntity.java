@@ -1,4 +1,4 @@
-package com.api.chatstack.entities;
+package com.api.chatstack.entities.auth;
 
 import com.chatstack.dto.AdminUpdateUserRequest;
 import com.chatstack.dto.User;
@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "t_users")
 @Data
 @Builder
 @AllArgsConstructor

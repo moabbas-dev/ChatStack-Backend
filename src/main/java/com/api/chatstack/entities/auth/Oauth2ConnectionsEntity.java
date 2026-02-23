@@ -1,4 +1,4 @@
-package com.api.chatstack.entities;
+package com.api.chatstack.entities.auth;
 
 
 import jakarta.persistence.*;
@@ -12,12 +12,12 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "oauth2_connections")
+@Table(name = "t_oauth2_connections")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Oauth2Connections {
+public class Oauth2ConnectionsEntity {
 
     @Id
     private UUID id;
