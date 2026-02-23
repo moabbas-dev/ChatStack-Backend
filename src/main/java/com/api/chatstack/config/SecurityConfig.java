@@ -35,19 +35,19 @@ public class SecurityConfig {
     // AUTH
     @Bean
     @Order(2)
-    public SecurityFilterChain authFilterChain(HttpSecurity http) {
+    public SecurityFilterChain authFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/chat-stack/api/v1/auth/**")
+                .securityMatcher("/auth/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/chat-stack/api/v1/auth/signup",
-                                "/chat-stack/api/v1/auth/login",
-                                "/chat-stack/api/v1/auth/refresh-token",
-                                "/chat-stack/api/v1/auth/verify-email",
-                                "/chat-stack/api/v1/auth/resend-verification",
-                                "/chat-stack/api/v1/auth/forgot-password",
-                                "/chat-stack/api/v1/auth/reset-password"
+                                "/auth/signup",
+                                "/auth/login",
+                                "/auth/refresh-token",
+                                "/auth/verify-email",
+                                "/auth/resend-verification",
+                                "/auth/forgot-password",
+                                "/auth/reset-password"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -78,13 +78,14 @@ public class SecurityConfig {
     @Order(4)
     public SecurityFilterChain userFilterChain(HttpSecurity http) {
         return http
-                .securityMatcher("/chat-stack/api/v1/users/**")
+                .securityMatcher("/users/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/chat-stack/api/v1/users/me",
-                                "/chat-stack/api/v1/users/{id}"
+                                "/users/me",
+                                "/users/{id}"
                         ).hasAnyAuthority(AdminUpdateUserRequest.RoleEnum.USER.name(), AdminUpdateUserRequest.RoleEnum.ADMIN.name())
+                        .anyRequest().hasAnyAuthority(AdminUpdateUserRequest.RoleEnum.USER.name(), AdminUpdateUserRequest.RoleEnum.ADMIN.name())
                 )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
