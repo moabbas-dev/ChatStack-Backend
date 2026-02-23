@@ -3,7 +3,7 @@ package com.api.chatstack.services;
 import com.api.chatstack.entities.EmailVerificationTokenEntity;
 import com.api.chatstack.entities.UserEntity;
 import com.api.chatstack.repositories.EmailVerificationTokenRepository;
-import com.api.chatstack.utils.FileLoader;
+import com.api.chatstack.utils.FileLoaderUtil;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +56,7 @@ public class MailService {
     }
 
     public void sendVerificationEmail(UserEntity user) throws MessagingException, IOException {
-        String html = FileLoader.loadHtmlTemplate("/templates/email/welcome.html");
+        String html = FileLoaderUtil.loadHtmlTemplate("/templates/email/welcome.html");
         html = html.replace("{{fullname}}", user.getFullName());
         html = html.replace("{{displayName}}", user.getDisplayName());
 

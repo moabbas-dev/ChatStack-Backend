@@ -33,8 +33,8 @@ public class AuthenticationController implements AuthenticationFlowApi {
     }
 
     @Override
-    public ResponseEntity<AuthResult> authLogin(PasswordLoginRequest passwordLoginRequest) {
-        AuthResult result = authService.login(passwordLoginRequest);
+    public ResponseEntity<AuthResponse> authLogin(PasswordLoginRequest passwordLoginRequest) {
+        AuthResponse result = authService.login(passwordLoginRequest);
         ResponseCookie refreshCookie = ResponseCookie.from(
                         "refreshToken",
                         result.getAccessToken()
@@ -51,7 +51,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(new AuthResult().accessToken(result.getAccessToken()).user(result.getUser()));
+                .body(new AuthResponse().accessToken(result.getAccessToken()).user(result.getUser()));
     }
 
     @Override
@@ -60,12 +60,12 @@ public class AuthenticationController implements AuthenticationFlowApi {
     }
 
     @Override
-    public ResponseEntity<AuthResult> authOAuth2Login(String provider, OAuth2LoginRequest oauth2LoginRequest) {
+    public ResponseEntity<AuthResponse> authOAuth2Login(String provider, OAuth2LoginRequest oauth2LoginRequest) {
         return null;
     }
 
     @Override
-    public ResponseEntity<RefreshResult> authRefreshToken() {
+    public ResponseEntity<RefreshResponse> authRefreshToken() {
         return null;
     }
 
@@ -85,9 +85,9 @@ public class AuthenticationController implements AuthenticationFlowApi {
     }
 
     @Override
-    public ResponseEntity<SignupResult> authSignup(SignupRequest signupRequest) {
+    public ResponseEntity<SignupResponse> authSignup(SignupRequest signupRequest) {
         try {
-            AuthResult result = authService.signup(signupRequest);
+            AuthResponse result = authService.signup(signupRequest);
             ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", result.getAccessToken())
                     .httpOnly(true)
                     .secure(false) // true in production (HTTPS)
@@ -100,7 +100,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .headers(headers)
-                    .body(new SignupResult().accessToken(result.getAccessToken()).user(result.getUser()));
+                    .body(new SignupResponse().accessToken(result.getAccessToken()).user(result.getUser()));
         } catch (MessagingException | IOException ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }

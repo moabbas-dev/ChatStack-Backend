@@ -1,6 +1,6 @@
 package com.api.chatstack.config;
 
-import com.api.chatstack.enums.Role;
+import com.chatstack.dto.AdminUpdateUserRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -65,7 +65,7 @@ public class SecurityConfig {
                 .securityMatcher("/admin/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().hasAuthority(Role.ADMIN.name())
+                        .anyRequest().hasAuthority(AdminUpdateUserRequest.RoleEnum.ADMIN.name())
                 )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
@@ -84,7 +84,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/chat-stack/api/v1/users/me",
                                 "/chat-stack/api/v1/users/{id}"
-                        ).hasAnyAuthority(Role.USER.name(), Role.ADMIN.name())
+                        ).hasAnyAuthority(AdminUpdateUserRequest.RoleEnum.USER.name(), AdminUpdateUserRequest.RoleEnum.ADMIN.name())
                 )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)

@@ -3,7 +3,6 @@ package com.api.chatstack.services;
 import com.api.chatstack.config.JwtService;
 import com.api.chatstack.entities.EmailVerificationTokenEntity;
 import com.api.chatstack.entities.UserEntity;
-import com.api.chatstack.enums.Role;
 import com.api.chatstack.exception.*;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.EmailVerificationTokenRepository;
@@ -78,7 +77,7 @@ public class AuthenticationService {
         return user;
     }
 
-    public AuthResult signup(SignupRequest signupRequest) throws MessagingException, IOException {
+    public AuthResponse signup(SignupRequest signupRequest) throws MessagingException, IOException {
         ValidationUtils.validatePassword(signupRequest.getPassword());
         ValidationUtils.validateEmail(signupRequest.getEmail());
         ValidationUtils.validateUsername(signupRequest.getDisplayName());
@@ -91,7 +90,7 @@ public class AuthenticationService {
                 .email(signupRequest.getEmail())
                 .emailVerified(false)
                 .passwordHashed(passwordEncoder.encode(signupRequest.getPassword()))
-                .role(Role.USER)
+                .role(AdminUpdateUserRequest.RoleEnum.USER)
                 .status(User.StatusEnum.OFFLINE)
                 .createdAt(OffsetDateTime.now())
                 .lastSeenAt(OffsetDateTime.now())
@@ -107,12 +106,12 @@ public class AuthenticationService {
 
         mailSender.sendVerificationEmail(userEntity);
 
-        return new AuthResult()
+        return new AuthResponse()
                 .accessToken(accessToken)
                 .user(userMapper.toDto(userEntity));
     }
 
-    public AuthResult login(PasswordLoginRequest loginRequest) {
+    public AuthResponse login(PasswordLoginRequest loginRequest) {
         User userDTO = null;
         String accessToken = "";
         String refreshToken = "";
@@ -139,7 +138,7 @@ public class AuthenticationService {
         accessToken = jwtService.generateAccessToken(user);
         refreshToken = jwtService.generateRefreshToken(user);
         userDTO = userMapper.toDto(user);
-        return new AuthResult().accessToken(accessToken).user(userDTO);
+        return new AuthResponse().accessToken(accessToken).user(userDTO);
     }
 
     public void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException {

@@ -1,12 +1,11 @@
 package com.api.chatstack.entities;
 
-import com.api.chatstack.enums.Role;
+import com.chatstack.dto.AdminUpdateUserRequest;
 import com.chatstack.dto.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.jspecify.annotations.Nullable;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -48,7 +47,7 @@ public class UserEntity implements UserDetails {
     private String avatarUrl;
 
     @Enumerated(EnumType.STRING)
-    private Role role;
+    private AdminUpdateUserRequest.RoleEnum role;
 
     @Enumerated(EnumType.STRING)
     private User.StatusEnum status;
@@ -62,6 +61,10 @@ public class UserEntity implements UserDetails {
     @Column(name = "created_at")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private OffsetDateTime updatedAt;
 
     @NonNull
     @Override
@@ -78,5 +81,16 @@ public class UserEntity implements UserDetails {
     @Override
     public String getUsername() {
         return this.email;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = OffsetDateTime.now();
+        updatedAt = OffsetDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = OffsetDateTime.now();
     }
 }

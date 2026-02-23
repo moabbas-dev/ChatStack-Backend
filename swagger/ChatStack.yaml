@@ -203,7 +203,7 @@ components:
     # -------------------------------------------------------------------------
 
     # Returned on login / token refresh — refresh token travels via HttpOnly cookie
-    AuthResult:
+    AuthResponse:
       type: object
       required:
         - access_token
@@ -217,7 +217,7 @@ components:
           $ref: '#/components/schemas/User'
 
     # Returned on signup — same shape, separate name for clarity
-    SignupResult:
+    SignupResponse:
       type: object
       required:
         - access_token
@@ -230,7 +230,7 @@ components:
         user:
           $ref: '#/components/schemas/User'
 
-    RefreshResult:
+    RefreshResponse:
       type: object
       required:
         - access_token
@@ -300,11 +300,7 @@ components:
         timezone:
           type: string
 
-# ===========================================================================
-# PATHS
-# ===========================================================================
 paths:
-
   # ===========================================================================
   # USERS MANAGEMENT
   # ===========================================================================
@@ -402,7 +398,6 @@ paths:
 
   # ---------------------------------------------------------------------------
   # /users/me — Current authenticated user
-  # NOTE: id is NEVER passed as a query param; identity comes from the JWT.
   # ---------------------------------------------------------------------------
   /users/me:
     get:
@@ -654,7 +649,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SignupResult'
+                $ref: '#/components/schemas/SignupResponse'
         '400':
           description: ValidationUtils error (invalid email, weak password, etc.)
           content:
@@ -699,7 +694,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResult'
+                $ref: '#/components/schemas/AuthResponse'
         '400':
           description: Invalid request body
           content:
@@ -762,7 +757,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResult'
+                $ref: '#/components/schemas/AuthResponse'
         '201':
           description: New account created via OAuth2 provider
           headers:
@@ -772,7 +767,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SignupResult'
+                $ref: '#/components/schemas/SignupResponse'
         '400':
           description: Invalid or expired id_token
           content:
@@ -868,7 +863,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RefreshResult'
+                $ref: '#/components/schemas/RefreshResponse'
         '401':
           description: Missing, invalid, or expired refresh token
           content:

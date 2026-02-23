@@ -12,18 +12,14 @@ import java.util.regex.Pattern;
  */
 public final class ValidationUtils {
 
-    // Password constraints
     private static final int PASSWORD_MIN_LENGTH = 12;
 
-    // Username constraints
     private static final int USERNAME_MIN_LENGTH = 3;
     private static final int USERNAME_MAX_LENGTH = 30;
 
-    // Fullname constraints
     private static final int FULLNAME_MIN_PARTS = 2;
     private static final int FULLNAME_MAX_LENGTH = 100;
 
-    // Pre-compiled patterns for performance
     private static final Pattern SPECIAL_CHAR_PATTERN =
             Pattern.compile("[!\"#$%&'()*+,\\-./:;<=>?@\\[\\]^_`{|}~]");
     private static final Pattern LOWERCASE_PATTERN = Pattern.compile("[a-z]");
@@ -35,9 +31,7 @@ public final class ValidationUtils {
     private static final Pattern CONSECUTIVE_SPECIALS_PATTERN = Pattern.compile("[._-]{2,}");
     private static final Pattern NAME_PART_PATTERN = Pattern.compile("[a-zA-Z'-]+");
 
-    private ValidationUtils() {
-        // Prevent instantiation
-    }
+    private ValidationUtils() {}
 
     /**
      * Validates a password against security requirements.
