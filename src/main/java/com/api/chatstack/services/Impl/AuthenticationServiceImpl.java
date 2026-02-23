@@ -4,6 +4,7 @@ import com.api.chatstack.config.JwtService;
 import com.api.chatstack.entities.auth.EmailVerificationTokenEntity;
 import com.api.chatstack.entities.auth.UserEntity;
 import com.api.chatstack.exception.*;
+import com.api.chatstack.mappers.AuthServiceResult;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.EmailVerificationTokenRepository;
 import com.api.chatstack.repositories.UserRepository;
@@ -16,12 +17,14 @@ import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
@@ -81,7 +84,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public AuthResponse signup(SignupRequest signupRequest) throws MessagingException, IOException {
+    public AuthServiceResult signup(SignupRequest signupRequest) throws MessagingException, IOException {
         ValidationUtils.validatePassword(signupRequest.getPassword());
         ValidationUtils.validateEmail(signupRequest.getEmail());
         ValidationUtils.validateUsername(signupRequest.getDisplayName());
@@ -96,7 +99,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .passwordHashed(passwordEncoder.encode(signupRequest.getPassword()))
                 .role(AdminUpdateUserRequest.RoleEnum.USER)
                 .status(User.StatusEnum.OFFLINE)
-                .createdAt(OffsetDateTime.now())
                 .lastSeenAt(OffsetDateTime.now())
                 .timezone(ZoneId.systemDefault().toString())
                 .build();
@@ -109,13 +111,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         mailSender.sendVerificationEmail(userEntity);
 
-        return new AuthResponse()
+        AuthResponse authResponse = new AuthResponse()
                 .accessToken(accessToken)
                 .user(userMapper.toDto(userEntity));
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(false) // true in production (HTTPS)
+                .sameSite("Lax")
+                .path("/chat-stack/api/v1/auth/refresh-token")
+                .maxAge(Duration.ofDays(7))
+                .build();
+
+        return AuthServiceResult.builder()
+                .authResponse(authResponse)
+                .refreshCookie(refreshCookie)
+                .build();
     }
 
     @Override
-    public AuthResponse login(PasswordLoginRequest loginRequest) {
+    public AuthServiceResult login(PasswordLoginRequest loginRequest) {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
 
@@ -137,8 +151,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
-        User userDTO = userMapper.toDto(user);
-        return new AuthResponse().accessToken(accessToken).user(userDTO);
+
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(false) // true in production
+                .secure(true)
+                .path("/chat-stack/api/v1/auth/refresh-token") // must match your refresh endpoint exactly
+                .maxAge(Duration.ofDays(7))
+                .sameSite("Lax")
+                .build();
+
+        AuthResponse authResponse = new AuthResponse()
+                .accessToken(accessToken)
+                .user(userMapper.toDto(user));
+
+        return AuthServiceResult.builder()
+                .authResponse(authResponse)
+                .refreshCookie(refreshTokenCookie)
+                .build();
     }
 
     @Override

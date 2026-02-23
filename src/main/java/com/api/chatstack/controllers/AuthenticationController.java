@@ -1,5 +1,6 @@
 package com.api.chatstack.controllers;
 
+import com.api.chatstack.mappers.AuthServiceResult;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.services.AuthenticationService;
 import com.chatstack.api.AuthenticationFlowApi;
@@ -34,24 +35,14 @@ public class AuthenticationController implements AuthenticationFlowApi {
 
     @Override
     public ResponseEntity<AuthResponse> authLogin(PasswordLoginRequest passwordLoginRequest) {
-        AuthResponse result = authService.login(passwordLoginRequest);
-        ResponseCookie refreshCookie = ResponseCookie.from(
-                        "refreshToken",
-                        result.getAccessToken()
-                )
-                .httpOnly(true)
-                .secure(false) // true in production (HTTPS)
-                .sameSite("Lax")
-                .path("/auth/refresh")
-                .maxAge(Duration.ofDays(7))
-                .build();
+        AuthServiceResult result = authService.login(passwordLoginRequest);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+        headers.add(HttpHeaders.SET_COOKIE, result.getRefreshCookie().toString());
 
-        return ResponseEntity.ok()
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .headers(headers)
-                .body(new AuthResponse().accessToken(result.getAccessToken()).user(result.getUser()));
+                .body(result.getAuthResponse());
     }
 
     @Override
@@ -76,7 +67,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
         } catch (MessagingException | IOException ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.ok().build();
     }
 
     @Override
@@ -87,20 +78,18 @@ public class AuthenticationController implements AuthenticationFlowApi {
     @Override
     public ResponseEntity<SignupResponse> authSignup(SignupRequest signupRequest) {
         try {
-            AuthResponse result = authService.signup(signupRequest);
-            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", result.getAccessToken())
-                    .httpOnly(true)
-                    .secure(false) // true in production (HTTPS)
-                    .sameSite("Lax")
-                    .path("/auth/refresh-token")
-                    .maxAge(Duration.ofDays(7))
-                    .build();
+            AuthServiceResult result = authService.signup(signupRequest);
+
             HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+            headers.add(HttpHeaders.SET_COOKIE, result.getRefreshCookie().toString());
+
+            SignupResponse response = new SignupResponse()
+                    .accessToken(result.getAuthResponse().getAccessToken())
+                    .user(result.getAuthResponse().getUser());
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .headers(headers)
-                    .body(new SignupResponse().accessToken(result.getAccessToken()).user(result.getUser()));
+                    .body(response);
         } catch (MessagingException | IOException ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
