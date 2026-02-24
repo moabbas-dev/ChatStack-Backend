@@ -3,7 +3,7 @@ package com.api.chatstack.services.Impl;
 import com.api.chatstack.config.JwtService;
 import com.api.chatstack.entities.auth.EmailVerificationTokenEntity;
 import com.api.chatstack.entities.auth.UserEntity;
-import com.api.chatstack.exception.*;
+import com.api.chatstack.exceptions.*;
 import com.api.chatstack.mappers.AuthServiceResult;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.EmailVerificationTokenRepository;
@@ -88,6 +88,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         ValidationUtils.validatePassword(signupRequest.getPassword());
         ValidationUtils.validateEmail(signupRequest.getEmail());
         ValidationUtils.validateUsername(signupRequest.getDisplayName());
+
+        if (userRepository.existsByEmail(signupRequest.getEmail())) {
+            throw new EmailAlreadyExistsException("User with this email already exists");
+        }
+
+        if (userRepository.existsByDisplayName(signupRequest.getDisplayName())) {
+            throw new DisplayNameAlreadyTakenException("Display name is already taken");
+        }
 
         String fullname = ValidationUtils.validateAndNormalizeFullname(signupRequest.getFullname());
 

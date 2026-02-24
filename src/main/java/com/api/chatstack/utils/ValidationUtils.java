@@ -1,6 +1,6 @@
 package com.api.chatstack.utils;
 
-import com.api.chatstack.exception.ChatStackException;
+import com.api.chatstack.exceptions.ChatStackException;
 import io.micrometer.common.util.StringUtils;
 import org.springframework.http.HttpStatus;
 

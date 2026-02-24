@@ -1,4 +1,4 @@
-package com.api.chatstack.exception;
+package com.api.chatstack.exceptions;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;

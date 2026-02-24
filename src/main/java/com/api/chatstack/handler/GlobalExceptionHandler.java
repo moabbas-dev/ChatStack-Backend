@@ -1,5 +1,6 @@
-package com.api.chatstack.exception;
+package com.api.chatstack.handler;
 
+import com.api.chatstack.exceptions.*;
 import com.chatstack.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -45,7 +46,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EmailAlreadyVerifiedException.class)
     public ResponseEntity<ErrorResponse> handleEmailAlreadyVerifiedException(EmailAlreadyVerifiedException ex) {
         log.error("Email already verified: {}", ex.getMessage());
-        ErrorResponse error = buildErrorResponse("EMAIL_ALREADY_VERIFIED", "Email Already Verified", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("EMAIL_ALREADY_VERIFIED", "User Already exist", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleEmailAlreadyExistException(EmailAlreadyExistsException ex) {
+        log.error("Email already exist: {}", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("EMAIL_ALREADY_EXIST", "Email Already Verified", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(DisplayNameAlreadyTakenException.class)
+    public ResponseEntity<ErrorResponse> handleDisplayNameAlreadyTakenException(DisplayNameAlreadyTakenException ex) {
+        log.error("Display name already taken: {}", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("DISPLAY_NAME_ALREADY_TAKEN", "Display Name Already Taken", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
@@ -79,10 +94,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
         public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException  ex) {
-        String description = ex.getBindingResult().getFieldErrors().stream()
+        String reason = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
-        ErrorResponse error = buildErrorResponse("VALIDATION_ERROR", description, ex.getMessage());
+        ErrorResponse error = buildErrorResponse("VALIDATION_ERROR", ex.getMessage(), reason);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 

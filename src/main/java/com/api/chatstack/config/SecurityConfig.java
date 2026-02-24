@@ -81,11 +81,18 @@ public class SecurityConfig {
                 .securityMatcher("/users/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/users/*/avatar/**").permitAll()
                         .requestMatchers(
                                 "/users/me",
                                 "/users/{id}"
-                        ).hasAnyAuthority(AdminUpdateUserRequest.RoleEnum.USER.name(), AdminUpdateUserRequest.RoleEnum.ADMIN.name())
-                        .anyRequest().hasAnyAuthority(AdminUpdateUserRequest.RoleEnum.USER.name(), AdminUpdateUserRequest.RoleEnum.ADMIN.name())
+                        ).hasAnyAuthority(
+                                AdminUpdateUserRequest.RoleEnum.USER.name(),
+                                AdminUpdateUserRequest.RoleEnum.ADMIN.name()
+                        )
+                        .anyRequest().hasAnyAuthority(
+                                AdminUpdateUserRequest.RoleEnum.USER.name(),
+                                AdminUpdateUserRequest.RoleEnum.ADMIN.name()
+                        )
                 )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)

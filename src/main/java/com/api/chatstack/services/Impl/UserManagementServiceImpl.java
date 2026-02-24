@@ -1,7 +1,7 @@
 package com.api.chatstack.services.Impl;
 
-import com.api.chatstack.exception.ChatStackException;
-import com.api.chatstack.exception.UserNotFoundException;
+import com.api.chatstack.exceptions.ChatStackException;
+import com.api.chatstack.exceptions.UserNotFoundException;
 import com.api.chatstack.repositories.UserRepository;
 import com.api.chatstack.services.UserManagementService;
 import lombok.RequiredArgsConstructor;

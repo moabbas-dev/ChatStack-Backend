@@ -1,4 +1,4 @@
-package com.api.chatstack.exception;
+package com.api.chatstack.exceptions;
 
 public class EmailAlreadyVerifiedException extends RuntimeException {
     public EmailAlreadyVerifiedException(String message) {
