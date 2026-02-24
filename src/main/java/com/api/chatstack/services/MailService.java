@@ -15,4 +15,6 @@ public interface MailService {
     EmailVerificationTokenEntity generateVerificationToken(UserEntity user);
 
     void sendVerificationEmail(UserEntity user) throws MessagingException, IOException;
+
+    void sendPasswordResetEmail(String email) throws MessagingException, IOException;
 }

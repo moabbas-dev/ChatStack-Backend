@@ -71,4 +71,12 @@ public class MailServiceImpl implements MailService {
         String emailContent = html.replace("{{verification_link}}", verificationLink);
         sendHtml(user.getEmail(), "Chat Stack - Email Activation", emailContent);
     }
+
+    @Override
+    public void sendPasswordResetEmail(String email) throws MessagingException, IOException {
+        String html = FileLoaderUtil.loadHtmlTemplate("/templates/email/password-reset.html");
+        String resetLink = baseUrl + "chat-stack/api/v1/auth/reset-password?email=" + email;
+        String emailContent = html.replace("{{reset_link}}", resetLink);
+        sendHtml(email, "Chat Stack - Password Reset", emailContent);
+    }
 }

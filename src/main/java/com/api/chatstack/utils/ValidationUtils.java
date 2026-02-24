@@ -12,77 +12,17 @@ import java.util.regex.Pattern;
  */
 public final class ValidationUtils {
 
-    private static final int PASSWORD_MIN_LENGTH = 12;
-
     private static final int USERNAME_MIN_LENGTH = 3;
     private static final int USERNAME_MAX_LENGTH = 30;
 
     private static final int FULLNAME_MIN_PARTS = 2;
     private static final int FULLNAME_MAX_LENGTH = 100;
 
-    private static final Pattern SPECIAL_CHAR_PATTERN =
-            Pattern.compile("[!\"#$%&'()*+,\\-./:;<=>?@\\[\\]^_`{|}~]");
-    private static final Pattern LOWERCASE_PATTERN = Pattern.compile("[a-z]");
-    private static final Pattern UPPERCASE_PATTERN = Pattern.compile("[A-Z]");
-    private static final Pattern DIGIT_PATTERN = Pattern.compile("[0-9]");
-    private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     private static final Pattern USERNAME_CHARS_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
     private static final Pattern CONSECUTIVE_SPECIALS_PATTERN = Pattern.compile("[._-]{2,}");
     private static final Pattern NAME_PART_PATTERN = Pattern.compile("[a-zA-Z'-]+");
 
     private ValidationUtils() {}
-
-    /**
-     * Validates a password against security requirements.
-     *
-     * @param password the password to validate
-     * @throws ChatStackException if the password does not meet requirements
-     */
-    public static void validatePassword(String password) {
-        if (password == null) {
-            throwValidation("PASSWORD_REQUIRED", "Invalid Password", "Password is required");
-        }
-        if (password.length() < PASSWORD_MIN_LENGTH) {
-            throwValidation("PASSWORD_TOO_SHORT", "Invalid Password",
-                    "Password must be at least " + PASSWORD_MIN_LENGTH + " characters");
-        }
-        if (password.contains(" ")) {
-            throwValidation("PASSWORD_INVALID", "Invalid Password", "Password cannot contain spaces");
-        }
-        if (!SPECIAL_CHAR_PATTERN.matcher(password).find()) {
-            throwValidation("PASSWORD_INVALID", "Invalid Password",
-                    "Password must contain at least one special character");
-        }
-        if (!LOWERCASE_PATTERN.matcher(password).find()) {
-            throwValidation("PASSWORD_INVALID", "Invalid Password",
-                    "Password must contain at least one lowercase character");
-        }
-        if (!UPPERCASE_PATTERN.matcher(password).find()) {
-            throwValidation("PASSWORD_INVALID", "Invalid Password",
-                    "Password must contain at least one uppercase character");
-        }
-        if (!DIGIT_PATTERN.matcher(password).find()) {
-            throwValidation("PASSWORD_INVALID", "Invalid Password",
-                    "Password must contain at least one digit");
-        }
-    }
-
-    /**
-     * Validates an email address format.
-     *
-     * @param email the email to validate
-     * @throws ChatStackException if the email is blank or has an invalid format
-     */
-    public static void validateEmail(String email) {
-        if (StringUtils.isBlank(email)) {
-            throwValidation("EMAIL_REQUIRED", "Invalid Email", "Email is required");
-        }
-        if (!EMAIL_PATTERN.matcher(email.trim()).matches()) {
-            throwValidation("EMAIL_INVALID", "Invalid Email",
-                    "Email format is invalid");
-        }
-    }
 
     /**
      * Validates a username (display name).

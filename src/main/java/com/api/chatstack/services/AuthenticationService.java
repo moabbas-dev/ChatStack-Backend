@@ -14,5 +14,13 @@ public interface AuthenticationService {
 
     AuthServiceResult login(PasswordLoginRequest loginRequest);
 
+    void logout(AuthLogoutRequest logoutRequest);
+
+    void resetPassword(AuthResetPasswordRequest resetPasswordRequest);
+
+    void forgotPassword(AuthResendVerificationRequest forgotPasswordRequest) throws MessagingException, IOException;
+
+    void changePassword(AuthChangePasswordRequest resetPasswordRequest);
+
     void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException;
 }

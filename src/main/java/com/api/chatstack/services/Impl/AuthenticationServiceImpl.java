@@ -68,25 +68,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         userRepository.save(user);
     }
 
-    private static UserEntity getUserEntity(EmailVerificationTokenEntity emailVerificationTokenEntity) {
-        UserEntity user = emailVerificationTokenEntity.getUser();
-
-        if (user == null) {
-            throw new UserNotFoundException("User not found");
-        }
-
-        if (user.isEmailVerified()) {
-            throw new EmailAlreadyVerifiedException("Email is already verified");
-        }
-
-        user.setEmailVerified(true);
-        return user;
-    }
-
     @Override
     public AuthServiceResult signup(SignupRequest signupRequest) throws MessagingException, IOException {
-        ValidationUtils.validatePassword(signupRequest.getPassword());
-        ValidationUtils.validateEmail(signupRequest.getEmail());
         ValidationUtils.validateUsername(signupRequest.getDisplayName());
 
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
@@ -141,9 +124,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
 
-        ValidationUtils.validateEmail(email);
-        ValidationUtils.validatePassword(password);
-
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
 
         UserEntity user = userRepository.findByEmail(email).orElseThrow(() ->
@@ -179,10 +159,84 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
+    public void logout(AuthLogoutRequest logoutRequest) {
+
+    }
+
+    @Override
+    public void resetPassword(AuthResetPasswordRequest resetPasswordRequest) {
+        String newPassword = resetPasswordRequest.getNewPassword();
+
+        UserEntity user = userRepository.findByEmail(resetPasswordRequest.getEmail())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        String oldPasswordHash = user.getPasswordHashed();
+
+        if (passwordEncoder.matches(newPassword, oldPasswordHash)) {
+            throw new SamePasswordException("New password cannot be the same as the old password");
+        }
+
+        String newPasswordHash = passwordEncoder.encode(newPassword);
+        user.setPasswordHashed(newPasswordHash);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void forgotPassword(AuthResendVerificationRequest forgotPasswordRequest) throws MessagingException, IOException {
+        String email = forgotPasswordRequest.getEmail();
+
+        if (!userRepository.existsByEmail(email)) {
+            throw new UserNotFoundException("User not found");
+        }
+
+        mailSender.sendPasswordResetEmail(email);
+    }
+
+    @Override
+    public void changePassword(AuthChangePasswordRequest resetPasswordRequest) {
+
+    }
+
+    @Override
     public void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException {
         UserEntity user = userRepository.findByEmail(authResendVerificationRequest.getEmail()).orElseThrow(() ->
                 new UserNotFoundException("User not found"));
 
         mailSender.sendVerificationEmail(user);
+    }
+
+    private static UserEntity getUserEntity(EmailVerificationTokenEntity emailVerificationTokenEntity) {
+        UserEntity user = emailVerificationTokenEntity.getUser();
+
+        if (user == null) {
+            throw new UserNotFoundException("User not found");
+        }
+
+        if (user.isEmailVerified()) {
+            throw new EmailAlreadyVerifiedException("Email is already verified");
+        }
+
+        user.setEmailVerified(true);
+        return user;
+    }
+
+    private boolean isPasswordTooSimilar(String oldPassword, String newPassword) {
+        int distance = levenshteinDistance(oldPassword, newPassword);
+        double similarity = 1.0 - ((double) distance / Math.max(oldPassword.length(), newPassword.length()));
+        return similarity > 0.7; // 70% similarity threshold
+    }
+
+    private int levenshteinDistance(String a, String b) {
+        int[][] dp = new int[a.length() + 1][b.length() + 1];
+        for (int i = 0; i <= a.length(); i++) dp[i][0] = i;
+        for (int j = 0; j <= b.length(); j++) dp[0][j] = j;
+
+        for (int i = 1; i <= a.length(); i++) {
+            for (int j = 1; j <= b.length(); j++) {
+                if (a.charAt(i - 1) == b.charAt(j - 1)) dp[i][j] = dp[i - 1][j - 1];
+                else dp[i][j] = 1 + Math.min(dp[i - 1][j - 1], Math.min(dp[i - 1][j], dp[i][j - 1]));
+            }
+        }
+        return dp[a.length()][b.length()];
     }
 }

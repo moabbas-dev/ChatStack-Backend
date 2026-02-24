@@ -85,6 +85,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(SamePasswordException.class)
+    public ResponseEntity<ErrorResponse> handleSamePasswordException(SamePasswordException ex) {
+        log.error("Same password: {}", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("SAME_PASSWORD", "Same Password", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
     @ExceptionHandler(InvalidVerificationLinkException.class)
     public ResponseEntity<ErrorResponse> handleInvalidVerificationLinkException(InvalidVerificationLinkException ex) {
         log.error("Invalid verification link: {}", ex.getMessage());

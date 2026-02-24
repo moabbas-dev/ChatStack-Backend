@@ -51,6 +51,7 @@ components:
         email:
           type: string
           format: email
+          description: Must be a valid email address
         fullname:
           type: string
         display_name:
@@ -143,11 +144,13 @@ components:
           format: email
           maxLength: 255
           example: user@example.com
+          description: Must be a valid email address
         password:
           type: string
           writeOnly: true
           format: password
           minLength: 12
+          maxLength: 30
           pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"
           description: >
             Must be at least 12 characters and contain uppercase, lowercase,
@@ -176,10 +179,17 @@ components:
           type: string
           format: email
           example: user@example.com
+          description: Must be a valid email address
         password:
           type: string
           format: password
+          minLength: 12
+          maxLength: 30
+          pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"
           writeOnly: true
+          description: >
+            Must be at least 12 characters and contain uppercase, lowercase,
+            a digit, and a special character (@$!%*?&#).
 
     # OAuth2 login — provider ID token exchange
     OAuth2LoginRequest:
@@ -933,6 +943,7 @@ paths:
                 email:
                   type: string
                   format: email
+                  description: Must be a valid email address
       responses:
         '204':
           description: Verification email resent (or silently ignored if already verified)
@@ -971,6 +982,7 @@ paths:
                 email:
                   type: string
                   format: email
+                  description: Must be a valid email address
       responses:
         '204':
           description: Reset email sent (if account exists)
@@ -995,17 +1007,23 @@ paths:
             schema:
               type: object
               required:
-                - token
+                - email
                 - new_password
               properties:
-                token:
+                email:
                   type: string
+                  format: email
+                  description: Must be a valid email address
                 new_password:
                   type: string
                   format: password
                   writeOnly: true
                   minLength: 12
+                  maxLength: 30
                   pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"
+                  description: >
+                    Must be at least 12 characters and contain uppercase, lowercase,
+                    a digit, and a special character (@$!%*?&#).
       responses:
         '204':
           description: Password reset successfully
@@ -1041,13 +1059,23 @@ paths:
                 current_password:
                   type: string
                   format: password
+                  minLength: 12
+                  maxLength: 30
+                  pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"
                   writeOnly: true
+                  description: >
+                    Must be at least 12 characters and contain uppercase, lowercase,
+                    a digit, and a special character (@$!%*?&#).
                 new_password:
                   type: string
                   format: password
                   writeOnly: true
                   minLength: 12
+                  maxLength: 30
                   pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"
+                  description: >
+                    Must be at least 12 characters and contain uppercase, lowercase,
+                    a digit, and a special character (@$!%*?&#).
       responses:
         '204':
           description: Password changed successfully
