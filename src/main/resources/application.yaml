@@ -57,3 +57,4 @@ springdoc:
 server:
   servlet:
     context-path: /chat-stack/api/v1
+  forward-headers-strategy: framework

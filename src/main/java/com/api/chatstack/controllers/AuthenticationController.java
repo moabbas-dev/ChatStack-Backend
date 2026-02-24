@@ -21,7 +21,6 @@ import java.time.Duration;
 public class AuthenticationController implements AuthenticationFlowApi {
 
     private final AuthenticationService authService;
-    private final UserMapper userMapper;
 
     @Override
     public ResponseEntity<Void> authChangePassword(AuthChangePasswordRequest authChangePasswordRequest) {
@@ -41,7 +40,12 @@ public class AuthenticationController implements AuthenticationFlowApi {
 
     @Override
     public ResponseEntity<AuthResponse> authLogin(PasswordLoginRequest passwordLoginRequest) {
-        AuthServiceResult result = authService.login(passwordLoginRequest);
+        AuthServiceResult result;
+        try {
+            result = authService.login(passwordLoginRequest);
+        } catch (IOException e) {
+            return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, result.getRefreshCookie().toString());

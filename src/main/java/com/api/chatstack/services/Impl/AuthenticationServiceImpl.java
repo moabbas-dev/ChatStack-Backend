@@ -3,11 +3,14 @@ package com.api.chatstack.services.Impl;
 import com.api.chatstack.config.JwtService;
 import com.api.chatstack.entities.auth.EmailVerificationTokenEntity;
 import com.api.chatstack.entities.auth.UserEntity;
+import com.api.chatstack.entities.auth.UserSessionsEntity;
 import com.api.chatstack.exceptions.*;
 import com.api.chatstack.mappers.AuthServiceResult;
 import com.api.chatstack.mappers.UserMapper;
+import com.api.chatstack.config.ClientRequestContext;
 import com.api.chatstack.repositories.EmailVerificationTokenRepository;
 import com.api.chatstack.repositories.UserRepository;
+import com.api.chatstack.repositories.UserSessionsRepository;
 import com.api.chatstack.services.AuthenticationService;
 import com.api.chatstack.services.MailService;
 import com.api.chatstack.utils.ValidationUtils;
@@ -20,13 +23,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -34,12 +40,15 @@ import java.time.ZoneId;
 public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final UserRepository userRepository;
+    private final UserSessionsRepository userSessionsRepository;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final MailService mailSender;
+    private final ClientRequestContext clientContext;
+
     @Value("${app.base-url}")
     private String baseUrl;
 
@@ -120,7 +129,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public AuthServiceResult login(PasswordLoginRequest loginRequest) {
+    @Transactional
+    public AuthServiceResult login(PasswordLoginRequest loginRequest) throws IOException {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
 
@@ -137,12 +147,30 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setStatus(User.StatusEnum.ONLINE);
         userRepository.save(user);
 
+        String clientIp = clientContext.getClientIp();
+
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
+        UserSessionsEntity session = UserSessionsEntity.builder()
+                .userEntity(user)
+                .deviceType(clientContext.getDeviceType())
+                .deviceName(clientContext.extractDeviceName(clientContext.getUserAgent()))
+                .tokenFamily("")
+                .revokedReason("")
+                .isRevoked(false)
+                .revokedAt(null)
+                .refreshTokenHash(passwordEncoder.encode(refreshToken))
+                .ipAddress(clientIp)
+                .userAgent(clientContext.getUserAgent())
+                .expiresAt(OffsetDateTime.now().plusDays(7))
+                .build();
+
+        userSessionsRepository.save(session);
+
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(false) // true in production
-                .secure(true)
+                .httpOnly(true)
+                .secure(false) // true in production
                 .path("/chat-stack/api/v1/auth/refresh-token") // must match your refresh endpoint exactly
                 .maxAge(Duration.ofDays(7))
                 .sameSite("Lax")
@@ -166,8 +194,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public void resetPassword(AuthResetPasswordRequest resetPasswordRequest) {
         String newPassword = resetPasswordRequest.getNewPassword();
+        String userEmail = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
 
-        UserEntity user = userRepository.findByEmail(resetPasswordRequest.getEmail())
+        UserEntity user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         String oldPasswordHash = user.getPasswordHashed();
@@ -183,18 +212,35 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public void forgotPassword(AuthResendVerificationRequest forgotPasswordRequest) throws MessagingException, IOException {
-        String email = forgotPasswordRequest.getEmail();
+        String userEmail = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
 
-        if (!userRepository.existsByEmail(email)) {
+        if (!userRepository.existsByEmail(userEmail)) {
             throw new UserNotFoundException("User not found");
         }
 
-        mailSender.sendPasswordResetEmail(email);
+        mailSender.sendPasswordResetEmail(userEmail);
     }
 
     @Override
     public void changePassword(AuthChangePasswordRequest resetPasswordRequest) {
+        String newPassword = resetPasswordRequest.getNewPassword();
 
+        String userEmail = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
+        UserEntity user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        String currentPasswordHash = user.getPasswordHashed();
+
+        if (!passwordEncoder.matches(resetPasswordRequest.getCurrentPassword(), currentPasswordHash)) {
+            throw new InvalidPasswordException("Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(newPassword, currentPasswordHash)) {
+            throw new SamePasswordException("New password cannot be the same as the old password");
+        }
+
+        String newPasswordHash = passwordEncoder.encode(newPassword);
+        user.setPasswordHashed(newPasswordHash);
+        userRepository.save(user);
     }
 
     @Override
@@ -220,23 +266,4 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return user;
     }
 
-    private boolean isPasswordTooSimilar(String oldPassword, String newPassword) {
-        int distance = levenshteinDistance(oldPassword, newPassword);
-        double similarity = 1.0 - ((double) distance / Math.max(oldPassword.length(), newPassword.length()));
-        return similarity > 0.7; // 70% similarity threshold
-    }
-
-    private int levenshteinDistance(String a, String b) {
-        int[][] dp = new int[a.length() + 1][b.length() + 1];
-        for (int i = 0; i <= a.length(); i++) dp[i][0] = i;
-        for (int j = 0; j <= b.length(); j++) dp[0][j] = j;
-
-        for (int i = 1; i <= a.length(); i++) {
-            for (int j = 1; j <= b.length(); j++) {
-                if (a.charAt(i - 1) == b.charAt(j - 1)) dp[i][j] = dp[i - 1][j - 1];
-                else dp[i][j] = 1 + Math.min(dp[i - 1][j - 1], Math.min(dp[i - 1][j], dp[i][j - 1]));
-            }
-        }
-        return dp[a.length()][b.length()];
-    }
 }

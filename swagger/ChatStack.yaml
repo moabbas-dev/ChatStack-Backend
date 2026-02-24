@@ -94,7 +94,7 @@ components:
           example: "Chrome on Windows"
         device_type:
           type: string
-          enum: [web, mobile, desktop, unknown]
+          enum: [mobile, desktop, tablet, unknown]
         ip_address:
           type: string
           example: "192.168.1.1"
@@ -976,13 +976,6 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - email
-              properties:
-                email:
-                  type: string
-                  format: email
-                  description: Must be a valid email address
       responses:
         '204':
           description: Reset email sent (if account exists)
@@ -1007,13 +1000,8 @@ paths:
             schema:
               type: object
               required:
-                - email
                 - new_password
               properties:
-                email:
-                  type: string
-                  format: email
-                  description: Must be a valid email address
                 new_password:
                   type: string
                   format: password
@@ -1056,6 +1044,10 @@ paths:
                 - current_password
                 - new_password
               properties:
+                email:
+                  type: string
+                  format: email
+                  description: Must be a valid email address
                 current_password:
                   type: string
                   format: password

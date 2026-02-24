@@ -5,6 +5,7 @@ import com.chatstack.dto.*;
 import jakarta.mail.MessagingException;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 
 public interface AuthenticationService {
 
@@ -12,7 +13,7 @@ public interface AuthenticationService {
 
     AuthServiceResult signup(SignupRequest signupRequest) throws MessagingException, IOException;
 
-    AuthServiceResult login(PasswordLoginRequest loginRequest);
+    AuthServiceResult login(PasswordLoginRequest loginRequest) throws IOException;
 
     void logout(AuthLogoutRequest logoutRequest);
 

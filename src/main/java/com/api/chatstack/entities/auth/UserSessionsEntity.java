@@ -41,7 +41,7 @@ public class UserSessionsEntity {
     private Session.DeviceTypeEnum deviceType;
 
     @Column(name = "ip_address", nullable = false)
-    private InetAddress ipAddress;
+    private String ipAddress;
 
     @Column(name = "user_agent", nullable = false)
     private String userAgent;
