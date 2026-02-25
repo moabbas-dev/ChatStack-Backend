@@ -34,11 +34,8 @@ public class ClientRequestContext {
         }
     }
 
-    public String extractDeviceName(String userAgent) throws IOException {
-        Parser parser = new Parser();
-        Client client = parser.parse(userAgent);
-
-        return client.device.family;
+    public String extractDeviceName(String userAgent) {
+        return new Parser().parse(userAgent).device.family;
     }
 
     private String extractClientIp(HttpServletRequest request) {

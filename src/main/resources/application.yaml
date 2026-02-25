@@ -1,5 +1,20 @@
 spring:
   security:
+    oauth2:
+        client:
+            registration:
+              google:
+                  client-id: 9177034378-6b4r7hajco9lqgq1d9gmfi7ttqh7mev1.apps.googleusercontent.com
+                  client-secret: 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
+                  scope:
+                    - email
+                    - profile
+            provider:
+              google:
+                authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+                token-uri: https://oauth2.googleapis.com/token
+                user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+                user-name-attribute: sub
     user:
       name: moabbas
       password: Mm11111!
@@ -12,7 +27,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create
     show-sql: true
     properties:
       hibernate:

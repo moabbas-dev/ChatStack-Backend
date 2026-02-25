@@ -21,6 +21,7 @@ import java.util.UUID;
 public class UserSessionsEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne

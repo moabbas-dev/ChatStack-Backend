@@ -250,6 +250,16 @@ components:
           description: New short-lived JWT. Old refresh token is invalidated (rotation).
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
+    AuthResendVerificationRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: test@example.com
+
     # -------------------------------------------------------------------------
     # User Update Bodies
     # -------------------------------------------------------------------------
@@ -975,7 +985,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/AuthResendVerificationRequest'
       responses:
         '204':
           description: Reset email sent (if account exists)
