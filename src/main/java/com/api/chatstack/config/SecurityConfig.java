@@ -121,6 +121,7 @@ public class SecurityConfig {
     @Order(5)
     public SecurityFilterChain oAuth2FilterChain(HttpSecurity http) {
         return http
+                .securityMatcher("/oauth2/authorization/**", "/login/oauth2/code/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().authenticated()
