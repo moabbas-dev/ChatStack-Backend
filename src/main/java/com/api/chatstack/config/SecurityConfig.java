@@ -116,10 +116,10 @@ public class SecurityConfig {
                 .build();
     }
 
-    // FALLBACK (ANY OTHER REQUEST MUST BE AUTHENTICATED)
+    // OAUTH2
     @Bean
     @Order(5)
-    public SecurityFilterChain defaultFilterChain(HttpSecurity http) {
+    public SecurityFilterChain oAuth2FilterChain(HttpSecurity http) {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
@@ -161,4 +161,22 @@ public class SecurityConfig {
                 )
                 .build();
     }
+
+    // FALLBACK (ANY OTHER REQUEST MUST BE AUTHENTICATED)
+    @Bean
+    @Order(6)
+    public SecurityFilterChain defaultFilterChain(HttpSecurity http) {
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(sm -> sm
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
 }
