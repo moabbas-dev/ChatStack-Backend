@@ -9,12 +9,23 @@ spring:
                   scope:
                     - email
                     - profile
+              github:
+                client-id: Ov23liGqJYZKxcnHH6E6
+                client-secret: 73197f4480e31cb65d33a5509eeb06bc6e5d6c4b
+                scope:
+                    - read:user
+                    - user:email
             provider:
               google:
                 authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
                 token-uri: https://oauth2.googleapis.com/token
                 user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
                 user-name-attribute: sub
+              github:
+                authorization-uri: https://github.com/login/oauth/authorize
+                token-uri: https://github.com/login/oauth/access_token
+                user-info-uri: https://api.github.com/user
+                user-name-attribute: login
     user:
       name: moabbas
       password: Mm11111!
