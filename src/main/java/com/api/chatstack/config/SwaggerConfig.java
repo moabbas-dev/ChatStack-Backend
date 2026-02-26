@@ -11,5 +11,8 @@ public class SwaggerConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/swagger/**")
                 .addResourceLocations("file:swagger/");
+
+        registry.addResourceHandler("/avatars/**")
+                .addResourceLocations("file:uploads/avatars/");
     }
 }

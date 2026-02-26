@@ -9,7 +9,6 @@ import com.chatstack.dto.AdminUpdateUserRequest;
 import com.chatstack.dto.User;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -17,11 +16,15 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
-import java.util.UUID;
 
 @Service
 @Transactional
@@ -32,6 +35,7 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
     private final PasswordEncoder passwordEncoder;
     private final ClientRequestContext clientContext;
     private final UserSessionsRepository userSessionsRepository;
+    private final RestTemplate restTemplate;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -43,9 +47,10 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
         }
 
         UserEntity user = userRepository.findByEmail(email).orElseGet(() -> {
+            String displayName = generateDisplayName(Objects.requireNonNull(oAuth2User.getAttribute("name")));
             UserEntity newUser = UserEntity.builder()
                     .fullName(oAuth2User.getAttribute("name"))
-                    .displayName(generateDisplayName(Objects.requireNonNull(oAuth2User.getAttribute("name"))))
+                    .displayName(displayName)
                     .email(email)
                     .emailVerified(true)
                     .passwordHashed(null)
@@ -56,7 +61,11 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
                     .build();
             UserEntity saved = userRepository.save(newUser);
             String pictureUrl = oAuth2User.getAttribute("picture");
+            pictureUrl = pictureUrl != null ? pictureUrl : oAuth2User.getAttribute("avatar_url");
+
             if (pictureUrl != null && !pictureUrl.isBlank()) {
+//                saved.setAvatarUrl(pictureUrl);
+                pictureUrl = savePictureUrlInResources(pictureUrl, newUser.getId().toString(), displayName);
                 saved.setAvatarUrl(pictureUrl);
             } else {
                 saved.setAvatarUrl("http://localhost:8080/chat-stack/api/v1/users/" + saved.getId() + "/avatar/default.png");
@@ -80,6 +89,27 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
         userSessionsRepository.save(session);
 
         return oAuth2User;
+    }
+
+    private String savePictureUrlInResources(String pictureUrl, String id, String displayName) {
+        byte[] imageBytes = restTemplate.getForObject(pictureUrl, byte[].class);
+        String uploadDir = System.getProperty("user.dir") + "/uploads/avatars/";
+        Path uploadPath = Paths.get(uploadDir);
+        try {
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+            String filename = displayName + ".png";
+            Path filePath = uploadPath.resolve(filename);
+
+            assert imageBytes != null;
+            Files.write(filePath, imageBytes);
+
+            return "http://localhost:8080/chat-stack/api/v1/users/" + id + "/avatar/" + filename;
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return "http://localhost:8080/chat-stack/api/v1/users/avatar/default.png";
+        }
     }
 
     private String generateDisplayName(String fullName) {

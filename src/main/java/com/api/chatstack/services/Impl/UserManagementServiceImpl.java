@@ -7,9 +7,13 @@ import com.api.chatstack.services.UserManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.net.MalformedURLException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -23,19 +27,28 @@ public class UserManagementServiceImpl implements UserManagementService {
         userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        // Only allow default avatar for now
-        if (!"default.png".equals(avatar)) {
+        Path avatarPath = Paths.get("uploads/avatars/" + avatar);
+
+        Resource resource;
+        try {
+            resource = new UrlResource(avatarPath.toUri());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
             throw new ChatStackException(
-                    "Avatar not found",
-                    "AVATAR_NOT_FOUND",
-                    "The requested avatar does not exist for this user.",
-                    HttpStatus.NOT_FOUND
+                    "Avatar unavailable",
+                    "AVATAR_URL_MALFORMED",
+                    "The avatar URL is malformed and cannot be accessed.",
+                    HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
 
-        Resource resource = new ClassPathResource("avatars/default.png");
+        if (resource.exists() && resource.isReadable()) {
+            return resource;
+        }
 
-        if (!resource.exists()) {
+        Resource defaultAvatar = new ClassPathResource("avatars/default.png");
+
+        if (!defaultAvatar.exists()) {
             throw new ChatStackException(
                     "Avatar unavailable",
                     "DEFAULT_AVATAR_MISSING",
@@ -44,6 +57,6 @@ public class UserManagementServiceImpl implements UserManagementService {
             );
         }
 
-        return resource;
+        return defaultAvatar;
     }
 }

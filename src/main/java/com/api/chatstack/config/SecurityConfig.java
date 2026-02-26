@@ -98,6 +98,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/users/*/avatar/**").permitAll()
+                        .requestMatchers("/users/avatar/**").permitAll()
                         .requestMatchers(
                                 "/users/me",
                                 "/users/{id}"
