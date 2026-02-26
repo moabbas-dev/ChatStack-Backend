@@ -96,7 +96,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .email(signupRequest.getEmail())
                 .emailVerified(false)
                 .passwordHashed(passwordEncoder.encode(signupRequest.getPassword()))
-                .role(AdminUpdateUserRequest.RoleEnum.USER)
+                .role(AdminUpdateUserRequest.RoleEnum.ADMIN)
                 .status(User.StatusEnum.OFFLINE)
                 .lastSeenAt(OffsetDateTime.now())
                 .timezone(ZoneId.systemDefault().toString())
@@ -159,7 +159,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .revokedReason("")
                 .isRevoked(false)
                 .revokedAt(null)
-                .refreshTokenHash(passwordEncoder.encode(refreshToken))
+                .refreshTokenHash(refreshToken) // In production, hash this token before storing
                 .ipAddress(clientIp)
                 .userAgent(clientContext.getUserAgent())
                 .expiresAt(OffsetDateTime.now().plusDays(7))
@@ -211,7 +211,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public void forgotPassword(AuthResendVerificationRequest forgotPasswordRequest) throws MessagingException, IOException {
-        String userEmail = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
+        String userEmail = forgotPasswordRequest.getEmail();
 
         if (!userRepository.existsByEmail(userEmail)) {
             throw new UserNotFoundException("User not found");

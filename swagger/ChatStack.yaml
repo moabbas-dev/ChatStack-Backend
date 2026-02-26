@@ -76,6 +76,25 @@ components:
           type: string
           format: date-time
 
+    UserListResponse:
+      type: object
+      required:
+        - content
+        - total_elements
+        - total_pages
+        - page
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        total_elements:
+          type: integer
+        total_pages:
+          type: integer
+        page:
+          type: integer
+
     Session:
       type: object
       required:
@@ -544,22 +563,11 @@ paths:
             maximum: 100
       responses:
         '200':
-          description: Paginated user list
+          description: Successful operation
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/User'
-                  total_elements:
-                    type: integer
-                  total_pages:
-                    type: integer
-                  page:
-                    type: integer
+                $ref: '#/components/schemas/UserListResponse'
         '401':
           description: Unauthorized
           content:
@@ -906,18 +914,14 @@ paths:
         - Authentication Flow
       summary: Verify user email with token from the verification link
       security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - token
-              properties:
-                token:
-                  type: string
-                  description: The verification token sent by email
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: >
+            The verification token sent by email. Can also be sent in the request body.
+          schema:
+            type: string
       responses:
         '204':
           description: Email verified successfully

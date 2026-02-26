@@ -43,7 +43,7 @@ public class UserEntity implements UserDetails {
     @JsonIgnore
     private String passwordHashed;
 
-    @Column(name = "avatar_url", nullable = true)
+    @Column(name = "avatar_url")
     private String avatarUrl;
 
     @Enumerated(EnumType.STRING)

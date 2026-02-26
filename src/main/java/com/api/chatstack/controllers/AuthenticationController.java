@@ -1,7 +1,6 @@
 package com.api.chatstack.controllers;
 
 import com.api.chatstack.mappers.AuthServiceResult;
-import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.services.AuthenticationService;
 import com.chatstack.api.AuthenticationFlowApi;
 import com.chatstack.dto.*;
@@ -9,12 +8,10 @@ import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.time.Duration;
 
 @RequiredArgsConstructor
 @RestController
@@ -108,8 +105,8 @@ public class AuthenticationController implements AuthenticationFlowApi {
     }
 
     @Override
-    public ResponseEntity<Void> authVerifyEmail(AuthVerifyEmailRequest authVerifyEmailRequest) {
-        authService.verifyEmail(authVerifyEmailRequest.getToken());
+    public ResponseEntity<Void> authVerifyEmail(String token) {
+        authService.verifyEmail(token);
         return ResponseEntity.noContent().build();
     }
 }

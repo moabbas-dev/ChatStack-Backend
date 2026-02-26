@@ -5,7 +5,6 @@ import com.chatstack.dto.*;
 import jakarta.mail.MessagingException;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 
 public interface AuthenticationService {
 

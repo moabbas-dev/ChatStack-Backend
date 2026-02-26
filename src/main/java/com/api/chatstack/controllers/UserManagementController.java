@@ -3,17 +3,16 @@ package com.api.chatstack.controllers;
 import com.api.chatstack.services.UserManagementService;
 import com.chatstack.api.UsersManagementApi;
 import com.chatstack.dto.AdminUpdateUserRequest;
-import com.chatstack.dto.GetAllUsers200Response;
 import com.chatstack.dto.UpdateUserRequest;
 import com.chatstack.dto.User;
+import com.chatstack.dto.UserListResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -32,8 +31,14 @@ public class UserManagementController implements UsersManagementApi {
     }
 
     @Override
-    public ResponseEntity<GetAllUsers200Response> getAllUsers(Integer page, Integer size) {
-        return null;
+    public ResponseEntity<UserListResponse> getAllUsers(Integer page, Integer size) {
+        UserListResponse userListResponse = userManagementService.getAllUsers(page, size);
+        if (userListResponse.getContent().isEmpty()) {
+            return ResponseEntity.noContent().build();
+        } else if (userListResponse.getContent().size() < size) {
+            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).body(userListResponse);
+        }
+        return ResponseEntity.ok(userListResponse);
     }
 
     @Override

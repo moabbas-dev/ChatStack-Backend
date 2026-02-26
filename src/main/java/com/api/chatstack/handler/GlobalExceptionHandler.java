@@ -92,6 +92,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(PermissionDeniedException.class)
+    public ResponseEntity<ErrorResponse> handlePermissionDeniedException(PermissionDeniedException ex) {
+        log.error("Permission denied: {}", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("PERMISSION_DENIED", "Permission Denied", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
     @ExceptionHandler(InvalidVerificationLinkException.class)
     public ResponseEntity<ErrorResponse> handleInvalidVerificationLinkException(InvalidVerificationLinkException ex) {
         log.error("Invalid verification link: {}", ex.getMessage());

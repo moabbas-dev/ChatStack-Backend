@@ -9,7 +9,7 @@ import com.chatstack.dto.AdminUpdateUserRequest;
 import com.chatstack.dto.User;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
@@ -26,13 +26,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final ClientRequestContext clientContext;
     private final UserSessionsRepository userSessionsRepository;
     private final RestTemplate restTemplate;
@@ -107,7 +107,7 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
 
             return "http://localhost:8080/chat-stack/api/v1/users/" + id + "/avatar/" + filename;
         } catch (IOException ex) {
-            ex.printStackTrace();
+            log.error("message: {}, stackTrace: {}", ex.getMessage(), ex.getStackTrace());
             return "http://localhost:8080/chat-stack/api/v1/users/avatar/default.png";
         }
     }
