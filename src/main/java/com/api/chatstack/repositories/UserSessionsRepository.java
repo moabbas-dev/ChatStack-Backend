@@ -1,5 +1,6 @@
 package com.api.chatstack.repositories;
 
+import com.api.chatstack.entities.auth.UserEntity;
 import com.api.chatstack.entities.auth.UserSessionsEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,4 +19,8 @@ public interface UserSessionsRepository extends JpaRepository<UserSessionsEntity
 
     @Query("select u from UserSessionsEntity u where u.isRevoked = false and u.tokenFamily = ?1")
     List<UserSessionsEntity> findByIsRevokedFalseAndTokenFamily(String tokenFamily);
+
+    List<UserSessionsEntity> findAllByUserEntityAndIsRevokedFalse(UserEntity userEntity);
+
+    List<UserSessionsEntity> findAllByIsRevokedFalse();
 }

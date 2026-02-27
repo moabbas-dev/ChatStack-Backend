@@ -127,6 +127,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
+    @ExceptionHandler(SessionNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleSessionNotFoundException(SessionNotFoundException ex) {
+        log.error("Session not found: {}", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("SESSION_NOT_FOUND", "Session Not Found", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedException(UnauthorizedException ex) {
+        log.error("Unauthorized: {}", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("UNAUTHORIZED", "Unauthorized", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
         public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException  ex) {
         String reason = ex.getBindingResult().getFieldErrors().stream()

@@ -199,7 +199,60 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public void logout(AuthLogoutRequest logoutRequest) {
+        HttpServletRequest request = clientContext.getRequest();
 
+        String rawToken = extractRefreshTokenFromCookie(request)
+                .orElseThrow(() -> new MissingRefreshTokenException("Refresh token cookie not found"));
+        
+        if (logoutRequest.getAllDevices() != null && logoutRequest.getAllDevices()) {
+            revokeAllSessionsForUser(rawToken);
+        } else {
+            revokeSingleSession(rawToken, logoutRequest.getSessionId());
+        }
+        clearRefreshCookie(response);
+    }
+
+    private void revokeSingleSession(String rawToken, UUID targetSessionId) {
+        UserSessionsEntity currentSession = userSessionsRepository.findAllByIsRevokedFalse()
+                .stream()
+                .filter(s -> passwordEncoder.matches(rawToken, s.getRefreshTokenHash()))
+                .findFirst()
+                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token"));
+
+        UserSessionsEntity targetSession = userSessionsRepository.findById(targetSessionId)
+                .orElseThrow(() -> new SessionNotFoundException("Session not found"));
+
+        if (targetSession.getIsRevoked()) {
+            throw new InvalidRefreshTokenException("Session already revoked");
+        }
+
+        if (!targetSession.getUserEntity().getId().equals(currentSession.getUserEntity().getId())) {
+            throw new UnauthorizedException("Cannot revoke another user's session");
+        }
+
+        targetSession.setIsRevoked(true);
+        targetSession.setRevokedAt(OffsetDateTime.now());
+        targetSession.setRevokedReason("logout");
+        userSessionsRepository.save(targetSession);
+    }
+
+    private void revokeAllSessionsForUser(String rawToken) {
+        UserSessionsEntity currentSession = userSessionsRepository.findAllByIsRevokedFalse()
+                .stream()
+                .filter(s -> passwordEncoder.matches(rawToken, s.getRefreshTokenHash()))
+                .findFirst()
+                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token not found"));
+
+        List<UserSessionsEntity> allUserSessions = userSessionsRepository
+                .findAllByUserEntityAndIsRevokedFalse(currentSession.getUserEntity());
+
+        allUserSessions.forEach(s -> {
+            s.setIsRevoked(true);
+            s.setRevokedAt(OffsetDateTime.now());
+            s.setRevokedReason("logout_all_devices");
+        });
+
+        userSessionsRepository.saveAll(allUserSessions);
     }
 
     @Override
