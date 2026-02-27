@@ -23,4 +23,6 @@ public interface AuthenticationService {
     void changePassword(AuthChangePasswordRequest resetPasswordRequest);
 
     void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException;
+
+    RefreshResponse refreshToken();
 }

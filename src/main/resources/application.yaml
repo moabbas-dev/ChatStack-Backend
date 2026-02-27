@@ -59,11 +59,14 @@ spring:
 
 app:
   base-url: http://localhost:8080/
+  auth:
+    cookie-domain: localhost
+    refresh-token-expiry-days: 7
+
 jwt:
   secret-key: a3cfd256a565152a6823cce8d6795ef8651e7dd5b10f4cf633e0d5540344d32c
   access-token-expiration: 900000
   refresh-token-expiration: 604800000
-
 
 #  POSTGRESQL_ADDON_HOST=bml420vp4oyqyn1eaefe-postgresql.services.clever-cloud.com
 #  POSTGRESQL_ADDON_DB=bml420vp4oyqyn1eaefe

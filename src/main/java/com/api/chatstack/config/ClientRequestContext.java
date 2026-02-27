@@ -5,10 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.annotation.RequestScope;
-import ua_parser.Client;
 import ua_parser.Parser;
-
-import java.io.IOException;
 
 @Component
 @RequestScope
@@ -16,10 +13,12 @@ import java.io.IOException;
 public class ClientRequestContext {
     private final String userAgent;
     private final String clientIp;
+    private final HttpServletRequest request;
 
     public ClientRequestContext(HttpServletRequest request) {
         this.clientIp = extractClientIp(request);
         this.userAgent = request.getHeader("User-Agent");
+        this.request = request;
     }
 
     public Session.DeviceTypeEnum getDeviceType() {

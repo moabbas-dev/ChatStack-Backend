@@ -17,9 +17,13 @@ import com.api.chatstack.utils.ValidationUtils;
 import com.chatstack.dto.*;
 import io.micrometer.common.util.StringUtils;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,10 +32,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -47,9 +52,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final MailService mailSender;
     private final ClientRequestContext clientContext;
+    private final HttpServletResponse response;
 
     @Value("${app.base-url}")
     private String baseUrl;
+
+    @Value("${jwt.refresh-token-expiry-days}")
+    private int refreshTokenExpiryDays;
+
+    @Value("${app.auth.cookie-domain:localhost}")
+    private String cookieDomain;
 
     @Override
     public void verifyEmail(String token) {
@@ -129,7 +141,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     @Transactional
-    public AuthServiceResult login(PasswordLoginRequest loginRequest) throws IOException {
+    public AuthServiceResult login(PasswordLoginRequest loginRequest) {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
 
@@ -250,19 +262,130 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         mailSender.sendVerificationEmail(user);
     }
 
-    private static UserEntity getUserEntity(EmailVerificationTokenEntity emailVerificationTokenEntity) {
-        UserEntity user = emailVerificationTokenEntity.getUser();
+    @Override
+    public RefreshResponse refreshToken() {
+        HttpServletRequest request = clientContext.getRequest();
 
-        if (user == null) {
-            throw new UserNotFoundException("User not found");
+        String rawToken = extractRefreshTokenFromCookie(request)
+                .orElseThrow(() -> new MissingRefreshTokenException("Refresh token cookie not found"));
+
+        UserSessionsEntity session = findSessionByRawToken(rawToken)
+                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token not found"));
+
+        String tokenFamily = session.getTokenFamily();
+        if (session.getIsRevoked()) {
+            revokeEntireFamily(tokenFamily);
+            clearRefreshCookie(response);
+            throw new RefreshTokenExpiredException("Refresh token reuse detected");
         }
 
-        if (user.isEmailVerified()) {
-            throw new EmailAlreadyVerifiedException("Email is already verified");
-        }
+        revokeSession(session);
 
-        user.setEmailVerified(true);
-        return user;
+        UserEntity user = session.getUserEntity();
+        String newRawRefreshToken = generateSecureToken();
+        String newAccessToken    = jwtService.generateAccessToken(user);
+
+        UserSessionsEntity newSession = UserSessionsEntity.builder()
+                .userEntity(user)
+                .refreshTokenHash(passwordEncoder.encode(newRawRefreshToken))
+                .tokenFamily(tokenFamily) // same family to link them together
+                .deviceName(session.getDeviceName())
+                .deviceType(session.getDeviceType())
+                .ipAddress(session.getIpAddress())
+                .userAgent(session.getUserAgent())
+                .isRevoked(false)
+                .expiresAt(OffsetDateTime.now().plusDays(refreshTokenExpiryDays))
+                .build();
+
+        userSessionsRepository.save(newSession);
+
+        writeRefreshCookie(response, newRawRefreshToken);
+
+        return new RefreshResponse()
+                .accessToken(newAccessToken);
     }
+
+    private Optional<UserSessionsEntity> findSessionByRawToken(String rawToken) {
+        return userSessionsRepository.findByIsRevokedFalse()
+                .stream()
+                .filter(s -> passwordEncoder.matches(rawToken, s.getRefreshTokenHash()))
+                .findFirst();
+    }
+
+    private void revokeEntireFamily(String tokenFamily) {
+        List<UserSessionsEntity> familySessions =
+                userSessionsRepository.findByIsRevokedFalseAndTokenFamily(tokenFamily);
+
+        familySessions.forEach(s -> {
+            s.setIsRevoked(true);
+            s.setRevokedAt(OffsetDateTime.now());
+            s.setRevokedReason("Token reuse detected");
+        });
+
+        userSessionsRepository.saveAll(familySessions);
+    }
+
+    private void revokeSession(UserSessionsEntity session) {
+        session.setIsRevoked(true);
+        session.setRevokedAt(OffsetDateTime.now());
+        session.setRevokedReason("rotated");
+        userSessionsRepository.save(session);
+    }
+
+    private String generateSecureToken() {
+        byte[] bytes = new byte[64];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private Optional<String> extractRefreshTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) return Optional.empty();
+
+        return Arrays.stream(request.getCookies())
+                .filter(c -> "refresh_token".equals(c.getName()))
+                .map(Cookie::getValue)
+                .findFirst();
+    }
+
+    private void writeRefreshCookie(HttpServletResponse response, String rawToken) {
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", rawToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .path("/api/v1/auth/refresh")   // scope cookie to refresh endpoint only
+                .maxAge(Duration.ofDays(refreshTokenExpiryDays))
+                .domain(cookieDomain)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private void clearRefreshCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .path("/api/v1/auth/refresh")
+                .maxAge(Duration.ZERO)          // immediate expiry
+                .domain(cookieDomain)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private static UserEntity getUserEntity(EmailVerificationTokenEntity emailVerificationTokenEntity) {
+    UserEntity user = emailVerificationTokenEntity.getUser();
+
+    if (user == null) {
+        throw new UserNotFoundException("User not found");
+    }
+
+    if (user.isEmailVerified()) {
+        throw new EmailAlreadyVerifiedException("Email is already verified");
+    }
+
+    user.setEmailVerified(true);
+    return user;
+}
 
 }

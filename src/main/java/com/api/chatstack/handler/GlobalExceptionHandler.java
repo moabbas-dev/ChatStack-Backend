@@ -106,6 +106,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(MissingRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleMissingRefreshTokenException(MissingRefreshTokenException ex) {
+        log.error("Missing refresh token: {}", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("MISSING_REFRESH_TOKEN", "Missing Refresh Token", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefreshTokenException(InvalidRefreshTokenException ex) {
+        log.error("Invalid refresh token: {}", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("INVALID_REFRESH_TOKEN", "Invalid Refresh Token", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(RefreshTokenExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleRefreshTokenExpiredException(RefreshTokenExpiredException ex) {
+        log.error("Refresh token expired: {}", ex.getMessage());
+        ErrorResponse error = buildErrorResponse("REFRESH_TOKEN_EXPIRED", "Refresh Token Expired", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
         public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException  ex) {
         String reason = ex.getBindingResult().getFieldErrors().stream()
