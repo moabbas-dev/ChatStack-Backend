@@ -59,11 +59,6 @@ public class AuthenticationController implements AuthenticationFlowApi {
     }
 
     @Override
-    public ResponseEntity<AuthResponse> authOAuth2Login(String provider, OAuth2LoginRequest oauth2LoginRequest) {
-        return null;
-    }
-
-    @Override
     public ResponseEntity<RefreshResponse> authRefreshToken() {
         RefreshResponse response = authService.refreshToken();
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

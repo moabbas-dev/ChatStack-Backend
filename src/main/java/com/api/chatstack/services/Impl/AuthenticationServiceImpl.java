@@ -57,7 +57,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Value("${app.base-url}")
     private String baseUrl;
 
-    @Value("${jwt.refresh-token-expiry-days}")
+    @Value("${app.auth.refresh-token-expiry-days}")
     private int refreshTokenExpiryDays;
 
     @Value("${app.auth.cookie-domain:localhost}")

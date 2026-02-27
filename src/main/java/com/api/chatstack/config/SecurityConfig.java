@@ -6,7 +6,6 @@ import com.api.chatstack.repositories.UserRepository;
 import com.api.chatstack.services.Impl.CustomOauth2UserService;
 import com.chatstack.dto.AdminUpdateUserRequest;
 import com.chatstack.dto.AuthResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +20,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 

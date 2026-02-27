@@ -748,69 +748,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /auth/oauth2/{provider}:
-    post:
-      operationId: authOAuth2Login
-      tags:
-        - Authentication Flow
-      summary: Login or register via an OAuth2 provider (e.g. Google)
-      description: >
-        Exchanges the provider's ID token for a ChatStack session.
-        If the provider account is not yet linked to any user, a new account is
-        created automatically (no separate signup step needed).
-        If the email already exists under a password account, a 409 is returned
-        with a link-account hint.
-      security: []
-      parameters:
-        - name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [google, github]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OAuth2LoginRequest'
-      responses:
-        '200':
-          description: Existing account — login successful
-          headers:
-            Set-Cookie:
-              description: HttpOnly refresh token cookie (same as password login)
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '201':
-          description: New account created via OAuth2 provider
-          headers:
-            Set-Cookie:
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SignupResponse'
-        '400':
-          description: Invalid or expired id_token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: >
-            Email already registered via password. Prompt user to link accounts
-            or login with their password instead.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
   /auth/logout:
     post:
       operationId: authLogout
