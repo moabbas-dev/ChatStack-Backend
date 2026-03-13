@@ -22,6 +22,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -41,6 +42,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final UserRepository userRepository;
@@ -86,6 +88,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         emailVerificationTokenRepository.save(emailVerificationTokenEntity);
         userRepository.save(user);
+        log.info("User {} verified their email successfully", user.getEmail());
     }
 
     @Override
@@ -132,7 +135,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .path("/chat-stack/api/v1/auth/refresh-token")
                 .maxAge(Duration.ofDays(7))
                 .build();
-
+        log.info("New user {} signed up successfully with email {}", user.getDisplayName(), user.getEmail());
         return AuthServiceResult.builder()
                 .authResponse(authResponse)
                 .refreshCookie(refreshCookie)
@@ -191,6 +194,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .accessToken(accessToken)
                 .user(userMapper.toDto(user));
 
+        log.info("User {} logged in successfully from IP {} (session {})", user.getEmail(), clientIp, session.getId());
         return AuthServiceResult.builder()
                 .authResponse(authResponse)
                 .refreshCookie(refreshTokenCookie)
@@ -210,49 +214,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             revokeSingleSession(rawToken, logoutRequest.getSessionId());
         }
         clearRefreshCookie(response);
-    }
-
-    private void revokeSingleSession(String rawToken, UUID targetSessionId) {
-        UserSessionsEntity currentSession = userSessionsRepository.findAllByIsRevokedFalse()
-                .stream()
-                .filter(s -> passwordEncoder.matches(rawToken, s.getRefreshTokenHash()))
-                .findFirst()
-                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token"));
-
-        UserSessionsEntity targetSession = userSessionsRepository.findById(targetSessionId)
-                .orElseThrow(() -> new SessionNotFoundException("Session not found"));
-
-        if (targetSession.getIsRevoked()) {
-            throw new InvalidRefreshTokenException("Session already revoked");
-        }
-
-        if (!targetSession.getUserEntity().getId().equals(currentSession.getUserEntity().getId())) {
-            throw new UnauthorizedException("Cannot revoke another user's session");
-        }
-
-        targetSession.setIsRevoked(true);
-        targetSession.setRevokedAt(OffsetDateTime.now());
-        targetSession.setRevokedReason("logout");
-        userSessionsRepository.save(targetSession);
-    }
-
-    private void revokeAllSessionsForUser(String rawToken) {
-        UserSessionsEntity currentSession = userSessionsRepository.findAllByIsRevokedFalse()
-                .stream()
-                .filter(s -> passwordEncoder.matches(rawToken, s.getRefreshTokenHash()))
-                .findFirst()
-                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token not found"));
-
-        List<UserSessionsEntity> allUserSessions = userSessionsRepository
-                .findAllByUserEntityAndIsRevokedFalse(currentSession.getUserEntity());
-
-        allUserSessions.forEach(s -> {
-            s.setIsRevoked(true);
-            s.setRevokedAt(OffsetDateTime.now());
-            s.setRevokedReason("logout_all_devices");
-        });
-
-        userSessionsRepository.saveAll(allUserSessions);
+        log.info("User logged out successfully (allDevices={}, sessionId={})", logoutRequest.getAllDevices(), logoutRequest.getSessionId());
     }
 
     @Override
@@ -272,6 +234,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String newPasswordHash = passwordEncoder.encode(newPassword);
         user.setPasswordHashed(newPasswordHash);
         userRepository.save(user);
+        log.info("User {} reset their password successfully", user.getEmail());
     }
 
     @Override
@@ -283,6 +246,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         mailSender.sendPasswordResetEmail(userEmail);
+        log.info("Sent password reset email to {}", userEmail);
     }
 
     @Override
@@ -305,14 +269,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String newPasswordHash = passwordEncoder.encode(newPassword);
         user.setPasswordHashed(newPasswordHash);
         userRepository.save(user);
+        log.info("User {} changed their password successfully", user.getEmail());
     }
 
     @Override
     public void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException {
         UserEntity user = userRepository.findByEmail(authResendVerificationRequest.getEmail()).orElseThrow(() ->
                 new UserNotFoundException("User not found"));
-
         mailSender.sendVerificationEmail(user);
+        log.info("Resent verification email to {}", user.getEmail());
     }
 
     @Override
@@ -353,7 +318,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         userSessionsRepository.save(newSession);
 
         writeRefreshCookie(response, newRawRefreshToken);
-
+        log.info("Issued new access token and refresh token for user {} (session {})", user.getEmail(), newSession.getId());
         return new RefreshResponse()
                 .accessToken(newAccessToken);
     }
@@ -427,18 +392,63 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     private static UserEntity getUserEntity(EmailVerificationTokenEntity emailVerificationTokenEntity) {
-    UserEntity user = emailVerificationTokenEntity.getUser();
+        UserEntity user = emailVerificationTokenEntity.getUser();
 
-    if (user == null) {
-        throw new UserNotFoundException("User not found");
+        if (user == null) {
+            throw new UserNotFoundException("User not found");
+        }
+
+        if (user.isEmailVerified()) {
+            throw new EmailAlreadyVerifiedException("Email is already verified");
+        }
+
+        user.setEmailVerified(true);
+        return user;
     }
 
-    if (user.isEmailVerified()) {
-        throw new EmailAlreadyVerifiedException("Email is already verified");
+    private void revokeSingleSession(String rawToken, UUID targetSessionId) {
+        UserSessionsEntity currentSession = userSessionsRepository.findAllByIsRevokedFalse()
+                .stream()
+                .filter(s -> passwordEncoder.matches(rawToken, s.getRefreshTokenHash()))
+                .findFirst()
+                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token"));
+
+        UserSessionsEntity targetSession = userSessionsRepository.findById(targetSessionId)
+                .orElseThrow(() -> new SessionNotFoundException("Session not found"));
+
+        if (targetSession.getIsRevoked()) {
+            throw new InvalidRefreshTokenException("Session already revoked");
+        }
+
+        if (!targetSession.getUserEntity().getId().equals(currentSession.getUserEntity().getId())) {
+            throw new UnauthorizedException("Cannot revoke another user's session");
+        }
+
+        targetSession.setIsRevoked(true);
+        targetSession.setRevokedAt(OffsetDateTime.now());
+        targetSession.setRevokedReason("logout");
+        userSessionsRepository.save(targetSession);
+        log.info("Revoked session {} for user {}", targetSession.getId(), currentSession.getUserEntity().getEmail());
     }
 
-    user.setEmailVerified(true);
-    return user;
-}
+    private void revokeAllSessionsForUser(String rawToken) {
+        UserSessionsEntity currentSession = userSessionsRepository.findAllByIsRevokedFalse()
+                .stream()
+                .filter(s -> passwordEncoder.matches(rawToken, s.getRefreshTokenHash()))
+                .findFirst()
+                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token not found"));
+
+        List<UserSessionsEntity> allUserSessions = userSessionsRepository
+                .findAllByUserEntityAndIsRevokedFalse(currentSession.getUserEntity());
+
+        allUserSessions.forEach(s -> {
+            s.setIsRevoked(true);
+            s.setRevokedAt(OffsetDateTime.now());
+            s.setRevokedReason("logout_all_devices");
+        });
+
+        userSessionsRepository.saveAll(allUserSessions);
+        log.info("Revoked all sessions for user {}", currentSession.getUserEntity().getEmail());
+    }
 
 }

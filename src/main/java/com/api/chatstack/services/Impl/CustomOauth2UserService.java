@@ -87,7 +87,7 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
                 .expiresAt(OffsetDateTime.now().plusDays(7))
                 .build();
         userSessionsRepository.save(session);
-
+        log.info("New session created for user: {}, sessionId: {}", user.getEmail(), session.getId());
         return oAuth2User;
     }
 
@@ -105,6 +105,7 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
             assert imageBytes != null;
             Files.write(filePath, imageBytes);
 
+            log.info("Saved avatar for user {} at {}", displayName, filePath.toString());
             return "http://localhost:8080/chat-stack/api/v1/users/" + id + "/avatar/" + filename;
         } catch (IOException ex) {
             log.error("message: {}, stackTrace: {}", ex.getMessage(), ex.getStackTrace());

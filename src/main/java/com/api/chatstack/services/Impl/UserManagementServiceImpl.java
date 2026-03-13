@@ -55,6 +55,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
 
         if (resource.exists() && resource.isReadable()) {
+            log.info("user avatar found: {}", avatar);
             return resource;
         }
 
@@ -69,6 +70,7 @@ public class UserManagementServiceImpl implements UserManagementService {
             );
         }
 
+        log.info("User {} requested avatar {}, but it was not found. Serving default avatar instead.", id, avatar);
         return defaultAvatar;
     }
 
@@ -99,6 +101,8 @@ public class UserManagementServiceImpl implements UserManagementService {
                         .createdAt(user.getCreatedAt())
                 )
                 .toList();
+        log.info("Retrieved page {} of users with size {}. Total elements: {}, Total pages: {}",
+                page, size, pageResult.getTotalElements(), pageResult.getTotalPages());
         return new UserListResponse()
                 .page(page)
                 .totalElements((int) pageResult.getTotalElements())

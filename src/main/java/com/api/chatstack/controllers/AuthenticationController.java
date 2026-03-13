@@ -22,7 +22,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
     @Override
     public ResponseEntity<Void> authChangePassword(AuthChangePasswordRequest authChangePasswordRequest) {
         authService.changePassword(authChangePasswordRequest);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        return ResponseEntity.noContent().build();
     }
 
     @Override
@@ -32,7 +32,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
         } catch (MessagingException | IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        return ResponseEntity.noContent().build();
     }
 
     @Override
@@ -55,7 +55,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
     @Override
     public ResponseEntity<Void> authLogout(AuthLogoutRequest authLogoutRequest) {
         authService.logout(authLogoutRequest);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        return ResponseEntity.noContent().build();
     }
 
     @Override
@@ -77,7 +77,7 @@ public class AuthenticationController implements AuthenticationFlowApi {
     @Override
     public ResponseEntity<Void> authResetPassword(AuthResetPasswordRequest authResetPasswordRequest) {
         authService.resetPassword(authResetPasswordRequest);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        return ResponseEntity.noContent().build();
     }
 
     @Override
