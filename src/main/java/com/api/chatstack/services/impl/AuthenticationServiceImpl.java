@@ -115,7 +115,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         UserEntity user = userMapper.populateUserEntityFromSignupRequest(signupRequest);
 
         UserEntity userEntity = userRepository.save(user);
-        userEntity.setAvatarUrl(baseUrl + "chat-stack/api/v1/users/" + user.getId() + "/avatar/default.png");
+        userEntity.setAvatarUrl(baseUrl + "/users/" + user.getId() + "/avatar/default.png");
 
         String refreshToken = jwtService.generateRefreshToken(user);
 
@@ -134,7 +134,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
 
         UserEntity user = userRepository.findByEmail(email).orElseThrow(() ->
-                new UserNotFoundException("User not found"));
+                new UserNotFoundException(UserNotFoundException.ERROR_MSG));
 
         if (!user.isEmailVerified()) {
             throw new UnverifiedEmailException("Your email is not verified. Please verify your email before logging in.");
@@ -176,7 +176,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String userEmail = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
 
         UserEntity user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(UserNotFoundException.ERROR_MSG));
 
         String oldPasswordHash = user.getPasswordHashed();
 
@@ -209,7 +209,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String userEmail = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
         UserEntity user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(UserNotFoundException.ERROR_MSG));
         String currentPasswordHash = user.getPasswordHashed();
 
         if (!passwordEncoder.matches(resetPasswordRequest.getCurrentPassword(), currentPasswordHash)) {
@@ -229,7 +229,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public void resendVerification(AuthResendVerificationRequest authResendVerificationRequest) throws MessagingException, IOException {
         UserEntity user = userRepository.findByEmail(authResendVerificationRequest.getEmail()).orElseThrow(() ->
-                new UserNotFoundException("User not found"));
+                new UserNotFoundException(UserNotFoundException.ERROR_MSG));
         mailSender.sendVerificationEmail(user);
         log.info("Resent verification email to {}", user.getEmail());
     }

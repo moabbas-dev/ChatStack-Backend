@@ -1,7 +1,6 @@
 package com.api.chatstack.mappers;
 
 import com.api.chatstack.config.ClientRequestContext;
-import com.api.chatstack.config.JwtService;
 import com.api.chatstack.entities.auth.UserEntity;
 import com.api.chatstack.entities.auth.UserSessionsEntity;
 import com.api.chatstack.utils.ValidationUtils;

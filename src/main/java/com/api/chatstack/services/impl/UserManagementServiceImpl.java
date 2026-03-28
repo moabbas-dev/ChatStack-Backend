@@ -4,6 +4,7 @@ import com.api.chatstack.entities.auth.UserEntity;
 import com.api.chatstack.exceptions.ChatStackException;
 import com.api.chatstack.exceptions.PermissionDeniedException;
 import com.api.chatstack.exceptions.UserNotFoundException;
+import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.UserRepository;
 import com.api.chatstack.services.UserManagementService;
 import com.chatstack.dto.AdminUpdateUserRequest;
@@ -33,11 +34,12 @@ import java.util.UUID;
 public class UserManagementServiceImpl implements UserManagementService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Override
     public Resource getUserAvatar(UUID id, String avatar) {
         userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(UserNotFoundException.ERROR_MSG));
 
         Path avatarPath = Paths.get("uploads/avatars/" + avatar);
 
@@ -87,20 +89,8 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         Page<UserEntity> pageResult = userRepository.findAll(PageRequest.of(page, size));
         List<UserEntity> users = pageResult.getContent();
-        List<User> userDtos = users.stream()
-                .map(user -> new User()
-                        .id(user.getId())
-                        .email(user.getEmail())
-                        .displayName(user.getUsername())
-                        .fullname(user.getFullName())
-                        .status(user.getStatus())
-                        .timezone(user.getTimezone())
-                        .lastSeenAt(user.getLastSeenAt())
-                        .avatarUrl(user.getAvatarUrl())
-                        .emailVerified(user.isEmailVerified())
-                        .createdAt(user.getCreatedAt())
-                )
-                .toList();
+        List<User> userDtos = users.stream().map(userMapper::toDto).toList();
+
         log.info("Retrieved page {} of users with size {}. Total elements: {}, Total pages: {}",
                 page, size, pageResult.getTotalElements(), pageResult.getTotalPages());
         return new UserListResponse()

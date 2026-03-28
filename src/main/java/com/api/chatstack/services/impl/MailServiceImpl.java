@@ -66,7 +66,7 @@ public class MailServiceImpl implements MailService {
         html = html.replace("{{displayName}}", user.getDisplayName());
 
         EmailVerificationTokenEntity token = generateVerificationToken(user);
-        String verificationLink = baseUrl + "chat-stack/api/v1/auth/verify-email?token=" + token.getVerificationToken();
+        String verificationLink = baseUrl + "/auth/verify-email?token=" + token.getVerificationToken();
 
         String emailContent = html.replace("{{verification_link}}", verificationLink);
         sendHtml(user.getEmail(), "Chat Stack - Email Activation", emailContent);
@@ -75,7 +75,7 @@ public class MailServiceImpl implements MailService {
     @Override
     public void sendPasswordResetEmail(String email) throws MessagingException, IOException {
         String html = FileLoaderUtil.loadHtmlTemplate("/templates/email/password-reset.html");
-        String resetLink = baseUrl + "chat-stack/api/v1/auth/reset-password?email=" + email;
+        String resetLink = baseUrl + "/auth/reset-password?email=" + email;
         String emailContent = html.replace("{{reset_link}}", resetLink);
         sendHtml(email, "Chat Stack - Password Reset", emailContent);
     }

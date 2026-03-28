@@ -58,7 +58,7 @@ spring:
             enable: true
 
 app:
-  base-url: http://localhost:8080/
+  base-url: http://localhost:8080/chat-stack/api/v1
   auth:
     cookie-domain: localhost
     refresh-token-expiry-days: 7

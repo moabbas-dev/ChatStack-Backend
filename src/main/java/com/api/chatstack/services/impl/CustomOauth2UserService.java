@@ -10,6 +10,7 @@ import com.chatstack.dto.User;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
@@ -36,6 +37,8 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
     private final ClientRequestContext clientContext;
     private final UserSessionsRepository userSessionsRepository;
     private final RestTemplate restTemplate;
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -64,7 +67,6 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
             pictureUrl = pictureUrl != null ? pictureUrl : oAuth2User.getAttribute("avatar_url");
 
             if (pictureUrl != null && !pictureUrl.isBlank()) {
-//                saved.setAvatarUrl(pictureUrl);
                 pictureUrl = savePictureUrlInResources(pictureUrl, newUser.getId().toString(), displayName);
                 saved.setAvatarUrl(pictureUrl);
             } else {
@@ -105,11 +107,11 @@ public class CustomOauth2UserService implements OAuth2UserService<OAuth2UserRequ
             assert imageBytes != null;
             Files.write(filePath, imageBytes);
 
-            log.info("Saved avatar for user {} at {}", displayName, filePath.toString());
-            return "http://localhost:8080/chat-stack/api/v1/users/" + id + "/avatar/" + filename;
+            log.info("Saved avatar for user {} at {}", displayName, filePath);
+            return baseUrl + "/users/" + id + "/avatar/" + filename;
         } catch (IOException ex) {
             log.error("message: {}, stackTrace: {}", ex.getMessage(), ex.getStackTrace());
-            return "http://localhost:8080/chat-stack/api/v1/users/avatar/default.png";
+            return baseUrl + "/users/avatar/default.png";
         }
     }
 

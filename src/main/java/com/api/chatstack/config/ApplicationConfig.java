@@ -1,5 +1,6 @@
 package com.api.chatstack.config;
 
+import com.api.chatstack.exceptions.UserNotFoundException;
 import com.api.chatstack.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +23,7 @@ public class ApplicationConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         return userEmail -> userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException(UserNotFoundException.ERROR_MSG));
     }
 
     @Bean
