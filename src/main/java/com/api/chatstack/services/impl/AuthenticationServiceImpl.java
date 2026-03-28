@@ -36,7 +36,6 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -113,44 +112,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new DisplayNameAlreadyTakenException("Display name is already taken");
         }
 
-        String fullname = ValidationUtils.validateAndNormalizeFullname(signupRequest.getFullname());
-
-        UserEntity user = UserEntity.builder()
-                .fullName(fullname)
-                .displayName(signupRequest.getDisplayName())
-                .email(signupRequest.getEmail())
-                .emailVerified(false)
-                .passwordHashed(passwordEncoder.encode(signupRequest.getPassword()))
-                .role(AdminUpdateUserRequest.RoleEnum.USER)
-                .status(User.StatusEnum.OFFLINE)
-                .lastSeenAt(OffsetDateTime.now())
-                .timezone(ZoneId.systemDefault().toString())
-                .build();
+        UserEntity user = userMapper.populateUserEntityFromSignupRequest(signupRequest);
 
         UserEntity userEntity = userRepository.save(user);
         userEntity.setAvatarUrl(baseUrl + "chat-stack/api/v1/users/" + user.getId() + "/avatar/default.png");
 
-        String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
         mailSender.sendVerificationEmail(userEntity);
 
-        AuthResponse authResponse = new AuthResponse()
-                .accessToken(accessToken)
-                .user(userMapper.toDto(userEntity));
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
-                .httpOnly(true)
-                .secure(false) // true in production (HTTPS)
-                .sameSite("Strict")
-                .path("/chat-stack/api/v1/auth/refresh-token")
-                .maxAge(Duration.ofDays(refreshTokenExpiryDays))
-                .domain(cookieDomain)
-                .build();
         log.info("New user {} signed up successfully with email {}", user.getDisplayName(), user.getEmail());
-        return AuthServiceResult.builder()
-                .authResponse(authResponse)
-                .refreshCookie(refreshCookie)
-                .build();
+        return buildAuthResult(user, refreshToken);
     }
 
     @Override
@@ -174,43 +146,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String clientIp = clientContext.getClientIp();
 
-        String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
-
-        UserSessionsEntity session = UserSessionsEntity.builder()
-                .userEntity(user)
-                .deviceType(clientContext.getDeviceType())
-                .deviceName(clientContext.extractDeviceName(clientContext.getUserAgent()))
-                .tokenFamily("")
-                .revokedReason("")
-                .isRevoked(false)
-                .revokedAt(null)
-                .refreshTokenHash(passwordEncoder.encode(refreshToken)) // Hash the token before storing
-                .ipAddress(clientIp)
-                .userAgent(clientContext.getUserAgent())
-                .expiresAt(OffsetDateTime.now().plusDays(refreshTokenExpiryDays))
-                .build();
-
+        UserSessionsEntity session = userMapper.populateUserSessionEntityForLogin(user, refreshToken);
         userSessionsRepository.save(session);
 
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken)
-                .httpOnly(true)
-                .secure(false) // true in production
-                .path("/chat-stack/api/v1/auth/refresh-token") // must match your refresh endpoint exactly
-                .maxAge(Duration.ofDays(refreshTokenExpiryDays))
-                .sameSite("Strict")
-                .domain(cookieDomain)
-                .build();
-
-        AuthResponse authResponse = new AuthResponse()
-                .accessToken(accessToken)
-                .user(userMapper.toDto(user));
-
         log.info("User {} logged in successfully from IP {} (session {})", user.getEmail(), clientIp, session.getId());
-        return AuthServiceResult.builder()
-                .authResponse(authResponse)
-                .refreshCookie(refreshTokenCookie)
-                .build();
+        return buildAuthResult(user, refreshToken);
     }
 
     @Override
@@ -316,24 +257,35 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String newRawRefreshToken = generateSecureToken();
         String newAccessToken    = jwtService.generateAccessToken(user);
 
-        UserSessionsEntity newSession = UserSessionsEntity.builder()
-                .userEntity(user)
-                .refreshTokenHash(passwordEncoder.encode(newRawRefreshToken))
-                .tokenFamily(tokenFamily) // same family to link them together
-                .deviceName(session.getDeviceName())
-                .deviceType(session.getDeviceType())
-                .ipAddress(session.getIpAddress())
-                .userAgent(session.getUserAgent())
-                .isRevoked(false)
-                .expiresAt(OffsetDateTime.now().plusDays(refreshTokenExpiryDays))
-                .build();
-
+        UserSessionsEntity newSession = userMapper.populateUserSessionEntityForRefresh(session, user, newRawRefreshToken);
         userSessionsRepository.save(newSession);
 
         writeRefreshCookie(response, newRawRefreshToken);
         log.info("Issued new access token and refresh token for user {} (session {})", user.getEmail(), newSession.getId());
         return new RefreshResponse()
                 .accessToken(newAccessToken);
+    }
+
+    private AuthServiceResult buildAuthResult(UserEntity user, String refreshToken) {
+        String accessToken = jwtService.generateAccessToken(user);
+
+        AuthResponse authResponse = new AuthResponse()
+                .accessToken(accessToken)
+                .user(userMapper.toDto(user));
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+                .httpOnly(true)
+                .secure(false) // true in production
+                .path("/chat-stack/api/v1/auth/refresh-token") // must match your refresh endpoint exactly
+                .maxAge(Duration.ofDays(refreshTokenExpiryDays))
+                .sameSite("Strict")
+                .domain(cookieDomain)
+                .build();
+
+        return AuthServiceResult.builder()
+                .authResponse(authResponse)
+                .refreshCookie(refreshCookie)
+                .build();
     }
 
     private Optional<UserSessionsEntity> findSessionByRawToken(String rawToken) {
@@ -414,7 +366,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         UserSessionsEntity targetSession = userSessionsRepository.findById(targetSessionId)
                 .orElseThrow(() -> new SessionNotFoundException("Session not found"));
 
-        if (targetSession.getIsRevoked()) {
+        if (Boolean.TRUE.equals(targetSession.getIsRevoked())) {
             throw new InvalidRefreshTokenException("Session already revoked");
         }
 
