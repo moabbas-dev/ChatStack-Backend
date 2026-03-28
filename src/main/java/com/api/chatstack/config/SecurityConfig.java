@@ -3,7 +3,7 @@ package com.api.chatstack.config;
 import com.api.chatstack.entities.auth.UserEntity;
 import com.api.chatstack.mappers.UserMapper;
 import com.api.chatstack.repositories.UserRepository;
-import com.api.chatstack.services.Impl.CustomOauth2UserService;
+import com.api.chatstack.services.impl.CustomOauth2UserService;
 import com.chatstack.dto.AdminUpdateUserRequest;
 import com.chatstack.dto.AuthResponse;
 import lombok.RequiredArgsConstructor;

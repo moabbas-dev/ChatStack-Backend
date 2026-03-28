@@ -1,4 +1,4 @@
-package com.api.chatstack.services.Impl;
+package com.api.chatstack.services.impl;
 
 import com.api.chatstack.entities.auth.EmailVerificationTokenEntity;
 import com.api.chatstack.entities.auth.UserEntity;

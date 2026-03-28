@@ -6,13 +6,13 @@ After a thorough scan of every source file, configuration, and POM in the projec
 
 ### Steps
 
-1. **Fix cookie name mismatch (BUG — refresh token flow is broken).** In `signup()` and `login()` the cookie is named `"refreshToken"` ([AuthenticationServiceImpl.java](src/main/java/com/api/chatstack/services/Impl/AuthenticationServiceImpl.java) lines 128, 182), while `extractRefreshTokenFromCookie()` looks for `"refresh_token"` (line 398). The same file's `writeRefreshCookie()`/`clearRefreshCookie()` also use `"refresh_token"`. Pick **one name** (recommend `refresh_token`) and use it everywhere, including in [SecurityConfig.java](src/main/java/com/api/chatstack/config/SecurityConfig.java) OAuth2 success handler (line 147).
+1. **Fix cookie name mismatch (BUG — refresh token flow is broken).** In `signup()` and `login()` the cookie is named `"refreshToken"` ([AuthenticationServiceImpl.java](src/main/java/com/api/chatstack/services/impl/AuthenticationServiceImpl.java) lines 128, 182), while `extractRefreshTokenFromCookie()` looks for `"refresh_token"` (line 398). The same file's `writeRefreshCookie()`/`clearRefreshCookie()` also use `"refresh_token"`. Pick **one name** (recommend `refresh_token`) and use it everywhere, including in [SecurityConfig.java](src/main/java/com/api/chatstack/config/SecurityConfig.java) OAuth2 success handler (line 147).
 
 2. **Fix cookie path mismatch (BUG — cookies will never be sent to the right endpoint).** `signup()`/`login()` set path `"/chat-stack/api/v1/auth/refresh-token"`, but `writeRefreshCookie()`/`clearRefreshCookie()` set path `"/api/v1/auth/refresh"`. The actual endpoint (with `context-path`) is `/chat-stack/api/v1/auth/refresh-token`. Unify all cookie paths to the correct one.
 
 3. **Fix wrong ObjectMapper import in `SecurityConfig` (likely compile error at runtime).** Line 23 imports `tools.jackson.databind.ObjectMapper` (Jackson 3.x). The correct import is `com.fasterxml.jackson.databind.ObjectMapper`. Change the import in [SecurityConfig.java](src/main/java/com/api/chatstack/config/SecurityConfig.java).
 
-4. **Fix `login()` storing raw refresh token instead of a hash.** In [AuthenticationServiceImpl.java](src/main/java/com/api/chatstack/services/Impl/AuthenticationServiceImpl.java) line 174 the JWT refresh token is stored as-is (`.refreshTokenHash(refreshToken)`), while `refreshToken()` (line 343) and `logout()` compare using `passwordEncoder.matches(rawToken, hash)`. Login sessions will **never** match during refresh/logout. Hash it: `.refreshTokenHash(passwordEncoder.encode(refreshToken))`.
+4. **Fix `login()` storing raw refresh token instead of a hash.** In [AuthenticationServiceImpl.java](src/main/java/com/api/chatstack/services/impl/AuthenticationServiceImpl.java) line 174 the JWT refresh token is stored as-is (`.refreshTokenHash(refreshToken)`), while `refreshToken()` (line 343) and `logout()` compare using `passwordEncoder.matches(rawToken, hash)`. Login sessions will **never** match during refresh/logout. Hash it: `.refreshTokenHash(passwordEncoder.encode(refreshToken))`.
 
 5. **Fix `login()` interface declaring `throws IOException` but impl not throwing it.** [AuthenticationService.java](src/main/java/com/api/chatstack/services/AuthenticationService.java) line 15 declares `throws IOException`, but `AuthenticationServiceImpl.login()` (line 144) does not. The controller wraps it in a pointless try/catch. Remove `throws IOException` from the interface and the try/catch in [AuthenticationController.java](src/main/java/com/api/chatstack/controllers/AuthenticationController.java) `authLogin()`.
 
@@ -20,7 +20,7 @@ After a thorough scan of every source file, configuration, and POM in the projec
 
 7. **Replace `@Data` with `@Getter @Setter` on JPA entities.** `@Data` generates `hashCode()`/`equals()`/`toString()` that trigger lazy-loading and cause performance issues. Affects [UserEntity.java](src/main/java/com/api/chatstack/entities/auth/UserEntity.java), [UserSessionsEntity.java](src/main/java/com/api/chatstack/entities/auth/UserSessionsEntity.java), [EmailVerificationTokenEntity.java](src/main/java/com/api/chatstack/entities/auth/EmailVerificationTokenEntity.java), [Oauth2ConnectionsEntity.java](src/main/java/com/api/chatstack/entities/auth/Oauth2ConnectionsEntity.java), and [PasswordResetTokensEntity.java](src/main/java/com/api/chatstack/entities/auth/PasswordResetTokensEntity.java).
 
-8. **Remove `io.micrometer.common.util.StringUtils` usage — no Micrometer/Actuator dependency in POM.** Used in [AuthenticationServiceImpl.java](src/main/java/com/api/chatstack/services/Impl/AuthenticationServiceImpl.java) and [ValidationUtils.java](src/main/java/com/api/chatstack/utils/ValidationUtils.java). Replace with `org.springframework.util.StringUtils` or add an explicit dependency.
+8. **Remove `io.micrometer.common.util.StringUtils` usage — no Micrometer/Actuator dependency in POM.** Used in [AuthenticationServiceImpl.java](src/main/java/com/api/chatstack/services/impl/AuthenticationServiceImpl.java) and [ValidationUtils.java](src/main/java/com/api/chatstack/utils/ValidationUtils.java). Replace with `org.springframework.util.StringUtils` or add an explicit dependency.
 
 9. **Fix `Oauth2ConnectionsEntity` and `PasswordResetTokensEntity` missing `@GeneratedValue` on `@Id`.** Both have `@Id private UUID id;` with no generation strategy — inserts will fail. Add `@GeneratedValue(strategy = GenerationType.UUID)`.
 
@@ -44,7 +44,7 @@ After a thorough scan of every source file, configuration, and POM in the projec
 
 19. **Fix `AuthenticationController` silently swallowing exceptions.** Methods catch `MessagingException | IOException` and return 500 with null body. Let `GlobalExceptionHandler` handle these, or re-throw as `ChatStackException`.
 
-20. **Fix `CustomOauth2UserService` using hardcoded `http://localhost:8080` URLs.** Lines 71, 108, 111 in [CustomOauth2UserService.java](src/main/java/com/api/chatstack/services/Impl/CustomOauth2UserService.java) hardcode the base URL. Inject `@Value("${app.base-url}")` instead.
+20. **Fix `CustomOauth2UserService` using hardcoded `http://localhost:8080` URLs.** Lines 71, 108, 111 in [CustomOauth2UserService.java](src/main/java/com/api/chatstack/services/impl/CustomOauth2UserService.java) hardcode the base URL. Inject `@Value("${app.base-url}")` instead.
 
 ### Further Considerations
 

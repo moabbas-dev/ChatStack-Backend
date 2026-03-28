@@ -1,4 +1,4 @@
-package com.api.chatstack.services.Impl;
+package com.api.chatstack.services.impl;
 
 import com.api.chatstack.config.JwtService;
 import com.api.chatstack.entities.auth.EmailVerificationTokenEntity;
@@ -73,7 +73,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         EmailVerificationTokenEntity emailVerificationTokenEntity = emailVerificationTokenRepository.
                 findByVerificationToken(token).orElseThrow(() ->
-                    new InvalidVerificationLinkException("Invalid Verification Token"));
+                        new InvalidVerificationLinkException("Invalid Verification Token"));
 
         if (emailVerificationTokenEntity.isUsed()) {
             throw new TokenExpiredException("Token is already used");
@@ -83,11 +83,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new TokenExpiredException("Token is expired");
         }
 
-        UserEntity user = getUserEntity(emailVerificationTokenEntity);
-        emailVerificationTokenEntity.setUsed(Boolean.TRUE);
+        UserEntity user = emailVerificationTokenEntity.getUser();
+        if (user == null) {
+            throw new UserNotFoundException("User not found for the given token");
+        }
 
-        emailVerificationTokenRepository.save(emailVerificationTokenEntity);
+        if (user.isEmailVerified()) {
+            throw new EmailAlreadyVerifiedException("Email is already verified");
+        }
+
+        user.setEmailVerified(true);
         userRepository.save(user);
+
+        emailVerificationTokenEntity.setUsed(Boolean.TRUE);
+        emailVerificationTokenRepository.save(emailVerificationTokenEntity);
+
         log.info("User {} verified their email successfully", user.getEmail());
     }
 
@@ -111,7 +121,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .email(signupRequest.getEmail())
                 .emailVerified(false)
                 .passwordHashed(passwordEncoder.encode(signupRequest.getPassword()))
-                .role(AdminUpdateUserRequest.RoleEnum.ADMIN)
+                .role(AdminUpdateUserRequest.RoleEnum.USER)
                 .status(User.StatusEnum.OFFLINE)
                 .lastSeenAt(OffsetDateTime.now())
                 .timezone(ZoneId.systemDefault().toString())
@@ -128,12 +138,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         AuthResponse authResponse = new AuthResponse()
                 .accessToken(accessToken)
                 .user(userMapper.toDto(userEntity));
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
                 .httpOnly(true)
                 .secure(false) // true in production (HTTPS)
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .path("/chat-stack/api/v1/auth/refresh-token")
-                .maxAge(Duration.ofDays(7))
+                .maxAge(Duration.ofDays(refreshTokenExpiryDays))
+                .domain(cookieDomain)
                 .build();
         log.info("New user {} signed up successfully with email {}", user.getDisplayName(), user.getEmail());
         return AuthServiceResult.builder()
@@ -174,20 +185,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .revokedReason("")
                 .isRevoked(false)
                 .revokedAt(null)
-                .refreshTokenHash(refreshToken) // In production, hash this token before storing
+                .refreshTokenHash(passwordEncoder.encode(refreshToken)) // Hash the token before storing
                 .ipAddress(clientIp)
                 .userAgent(clientContext.getUserAgent())
-                .expiresAt(OffsetDateTime.now().plusDays(7))
+                .expiresAt(OffsetDateTime.now().plusDays(refreshTokenExpiryDays))
                 .build();
 
         userSessionsRepository.save(session);
 
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken)
                 .httpOnly(true)
                 .secure(false) // true in production
                 .path("/chat-stack/api/v1/auth/refresh-token") // must match your refresh endpoint exactly
-                .maxAge(Duration.ofDays(7))
-                .sameSite("Lax")
+                .maxAge(Duration.ofDays(refreshTokenExpiryDays))
+                .sameSite("Strict")
+                .domain(cookieDomain)
                 .build();
 
         AuthResponse authResponse = new AuthResponse()
@@ -242,7 +254,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String userEmail = forgotPasswordRequest.getEmail();
 
         if (!userRepository.existsByEmail(userEmail)) {
-            throw new UserNotFoundException("User not found");
+            log.info("Password reset requested for non-existing user: {}", userEmail);
+            return;
         }
 
         mailSender.sendPasswordResetEmail(userEmail);
@@ -291,7 +304,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token not found"));
 
         String tokenFamily = session.getTokenFamily();
-        if (session.getIsRevoked()) {
+        if (Boolean.TRUE.equals(session.getIsRevoked())) {
             revokeEntireFamily(tokenFamily);
             clearRefreshCookie(response);
             throw new RefreshTokenExpiredException("Refresh token reuse detected");
@@ -368,9 +381,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private void writeRefreshCookie(HttpServletResponse response, String rawToken) {
         ResponseCookie cookie = ResponseCookie.from("refresh_token", rawToken)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false) // true in production
                 .sameSite("Strict")
-                .path("/api/v1/auth/refresh")   // scope cookie to refresh endpoint only
+                .path("/chat-stack/api/v1/auth/refresh-token")   // scope cookie to refresh endpoint only
                 .maxAge(Duration.ofDays(refreshTokenExpiryDays))
                 .domain(cookieDomain)
                 .build();
@@ -381,29 +394,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private void clearRefreshCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(false) // true in production
                 .sameSite("Strict")
-                .path("/api/v1/auth/refresh")
+                .path("/chat-stack/api/v1/auth/refresh-token")
                 .maxAge(Duration.ZERO)          // immediate expiry
                 .domain(cookieDomain)
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-    }
-
-    private static UserEntity getUserEntity(EmailVerificationTokenEntity emailVerificationTokenEntity) {
-        UserEntity user = emailVerificationTokenEntity.getUser();
-
-        if (user == null) {
-            throw new UserNotFoundException("User not found");
-        }
-
-        if (user.isEmailVerified()) {
-            throw new EmailAlreadyVerifiedException("Email is already verified");
-        }
-
-        user.setEmailVerified(true);
-        return user;
     }
 
     private void revokeSingleSession(String rawToken, UUID targetSessionId) {
